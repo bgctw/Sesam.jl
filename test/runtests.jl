@@ -1,6 +1,7 @@
 using Sesam
+using ModelingToolkit, DifferentialEquations
 using Test
 
-@testset "Sesam.jl" begin
-    # Write your tests here.
+@testset "sesam1" begin
+    include("test_sesam1.jl")        
 end
