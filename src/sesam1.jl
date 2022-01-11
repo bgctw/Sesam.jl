@@ -1,25 +1,43 @@
 function sesam1(;name)
-    @parameters t 
+    @parameters t [unit = uT]
     D = Differential(t)
 
-    @parameters ϵ_tvr κ_E a_E m τ k_L k_R k_mN ϵ
+    @parameters ϵ ϵ_tvr κ_E a_E [unit = uT^-1] m [unit = uT^-1] τ [unit = uT^-1] 
+    @parameters k_L [unit = uT^-1] k_R [unit = uT^-1] k_mN [unit = uQ*uT^-1] 
     @parameters α_R0
-    @variables B(t) L(t) R(t) α_R(t) cumresp(t)
-    @variables syn_Enz(t) r_M(t) tvr_B(t) dec_LPot(t) dec_L(t) dec_RPot(t) dec_R(t) u_C(t)
-    @variables C_synBCt(t) C_synBC(t) r_G(t) r_tvr(t) syn_B(t)
-    @variables C_tot(t) r_B(t) r_GEnz(t) r_O(t)
-    @variables α_L(t)
 
-    @variables L_N(t) R_N(t) I_N(t)
-    @variables Φ_N(t) Φ_Nu(t) Φ_NB(t) u_PlantN(t) u_NOM(t) u_immNPot(t) 
-    @variables u_N(t) N_synBN(t) M_ImbN(t) β_NL(t) β_NR(t) 
-    @parameters β_NE β_NB l_N ν_N i_BN 
+    # state variables
+    @variables B(t) [unit = uQ] L(t) [unit = uQ]  R(t) [unit = uQ] α_R(t) cumresp(t) [unit = uQ]
+
+    @variables α_L(t) tmpNoUnit(t)
+    # fluxes
+    @variables (begin
+        syn_Enz(t),[unit = uQ/uT], r_M(t),[unit = uQ/uT], tvr_B(t),[unit = uQ/uT],
+        dec_LPot(t),[unit = uQ/uT], dec_L(t),[unit = uQ/uT], dec_RPot(t),[unit = uQ/uT],
+        dec_R(t),[unit = uQ/uT], u_C(t),[unit = uQ/uT],
+        C_synBCt(t),[unit = uQ/uT], C_synBC(t),[unit = uQ/uT], r_G(t),[unit = uQ/uT],
+        r_tvr(t),[unit = uQ/uT], syn_B(t),[unit = uQ/uT],
+        r_B(t),[unit = uQ/uT], r_GEnz(t),[unit = uQ/uT], r_O(t),[unit = uQ/uT]
+    end)
+
+    #------------- N ---------------------
+    @variables L_N(t) [unit = uQ] R_N(t) [unit = uQ] I_N(t) [unit = uQ]
+    @variables (begin
+        Φ_N(t),[unit = uQ/uT], Φ_Nu(t),[unit = uQ/uT], Φ_NB(t),[unit = uQ/uT], 
+        u_PlantN(t),[unit = uQ/uT], u_NOM(t),[unit = uQ/uT], u_immNPot(t),[unit = uQ/uT], 
+        u_N(t),[unit = uQ/uT], N_synBN(t),[unit = uQ/uT], M_ImbN(t),[unit = uQ/uT], 
+        β_NL(t), β_NR(t) 
+    end)
+    @parameters β_NE β_NB l_N [unit = uT^-1] ν_N i_BN [unit = uT^-1] 
 
     # need to be specified by coupled system:
-    @variables i_L(t) β_Ni(t) i_IN(t)
-    @variables u_PlantNmax(t) k_PlantN(t)
+    @variables (begin
+        i_L(t),[unit = uQ/uT], β_Ni(t), i_IN(t),[unit = uQ/uT],
+        u_PlantNmax(t),[unit = uQ/uT], k_PlantN(t),[unit = uT^-1]
+    end) 
 
     eqs = [
+        #tmpNoUnit ~ ustrip_num(B),
         D(B) ~ syn_B - tvr_B,
         D(L) ~ -dec_L + i_L,
         D(R) ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*syn_Enz,
@@ -34,7 +52,11 @@ function sesam1(;name)
         dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN + α_R*syn_Enz),
         u_C ~ dec_L + dec_R + κ_E*syn_Enz,
         C_synBCt ~ u_C - syn_Enz/ϵ - r_M,
-        C_synBC ~ IfElse.ifelse(C_synBCt > 0.0, ϵ*C_synBCt, C_synBCt), 
+        # TODO make ifelse work with Unitful
+        #tmpNoUnit ~ 1.0u"g*m^-2*yr^-1" > 0.0u"g*m^-2*yr^-1",
+        #tmpNoUnit ~ C_synBCt.val > 0.0u"g*m^-2*yr^-1",
+        #C_synBC ~ IfElse.ifelse(C_synBCt > 0.0u"g*m^-2*yr^-1", ϵ*C_synBCt, C_synBCt), 
+        C_synBC ~ ϵ*C_synBCt,
         # N cycle
         β_NL ~ L/L_N,
         β_NR ~ R/R_N,
@@ -54,14 +76,16 @@ function sesam1(;name)
         #syn_B ~ C_synBC,
         syn_B ~ min(C_synBC, β_NB*N_synBN), # TODO add P limitation
         α_L ~ (1-α_R),
-        # excell fluxes
+        # excess fluxes
         r_O ~ u_C - (syn_Enz/ϵ +  syn_B + r_G + r_M), 
         # auxilaries
         #D(cumresp) ~ r_B + r_tvr,
         r_tvr ~ (1-ϵ_tvr)*tvr_B,
         r_B ~ r_GEnz + r_G + r_M + r_O,
         r_GEnz ~ (1-ϵ)/ϵ * syn_Enz,
-        r_G ~ IfElse.ifelse(syn_B > 0, (1-ϵ)/ϵ * syn_B, 0.0), 
+        # TODO make ifelse work with Unitful
+        # r_G ~ IfElse.ifelse(syn_B.val > 0.0, (1-ϵ)/ϵ * syn_B, 0.0), 
+        r_G ~ (1-ϵ)/ϵ * syn_B, 
         ]
     ODESystem(eqs; name)    
 end

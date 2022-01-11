@@ -63,6 +63,7 @@ u0[s.R_N] = u0[s.R]/p[s.β_NB]
 tspan = (0.0,100.0)    
 
 #prob = ODEProblem(sp,[t for t in u0], tspan, [t for t in p])
+#prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
 sol = solve(prob)
@@ -89,3 +90,7 @@ Dict(p)[i_L]
  plot(sol, tspan=(0.0,2.0), vars=[u_NOM, r_B+syn_B+syn_Enz])
 # plot(sol,  vars=[u_C, r_B+syn_B+syn_Enz])
 
+DifferentialEquations v7.0.0
+IfElse v0.1.1
+ModelingToolkit v8.0.0
+Unitful v1.10.1
