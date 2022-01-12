@@ -1,8 +1,5 @@
-@named s = sesam1()
+@named s = sesam3()
 @named pl = plant_const()
-
-@parameters t
-D = Differential(t)
 
 # @named s = Sesam.sesam1C()
 # sp = compose(ODESystem([
@@ -10,20 +7,10 @@ D = Differential(t)
 #     # colimitation
 #     s.syn_B ~ s.C_synBC,
 #   ], t; name=:sp), s, pl)
+#sp = structural_simplify(sp)
 
-sp = compose(ODESystem([
-    s.i_L ~ pl.i_L,
-    s.i_IN ~ pl.i_IN,
-    s.β_Ni ~ pl.β_Ni,
-    s.u_PlantNmax ~ pl.u_PlantNmax,
-    s.k_PlantN ~ pl.k_PlantN,
-    # colimitation
-    #s.syn_B ~ s.C_synBC,
-    s.syn_B ~ min(s.C_synBC, s.β_NB*s.N_synBN), # TODO add P limitation
-  ], t; name=:sp), s, pl)
-sp = structural_simplify(sp)
+@named sp = plant_sesam_system(s,pl)
 states(sp)
-equations(sp)
 
 p = pC = Dict(
     s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
@@ -45,7 +32,7 @@ p = pC = Dict(
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 
-    s.β_NE => 3.1,     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
+    s.β_NEnz => 3.1,     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
     s.β_NB => 11.0,
     #s.l_N => 0.96,       #0.00262647*365     ##<< leaching rate of mineralN lN IN
     s.l_N => 0.0,       
@@ -64,12 +51,14 @@ u0 = u0C = Dict(
     #s.cumresp => 0.0,
     s.α_R => 0.1, # enzyme synthesis into L # TODO model by optimality
 )
+u0C[s.α_L] = 1.0 - u0C[s.α_R]
 u0N = Dict(
     s.I_N => 0.04, ##<< inorganic pool gN/m2 
     s.L_N => u0[s.L]/p[pl.β_Ni0],
-    s.R_N => u0[s.R]/p[s.β_NB],
+    s.R_N => u0[s.R]/calculate_β_NR_sesam3(p,s) #p[s.β_NB],
     )
 u0 = merge(u0C, u0N)    
+#u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
 tspan = (0.0,100.0)    
 
@@ -78,6 +67,13 @@ tspan = (0.0,100.0)
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
 sol = solve(prob)
+
+@testset "non-negative pools" begin
+    #st = first(states(sp))
+    for st in states(sp)
+        @test all(sol[st] .>= 0.0) 
+    end
+end;
 
 @testset "microbial dC balance" begin
     #plot(sol,  vars=[s.u_C, s.r_B+s.syn_B+s.syn_Enz])
@@ -98,7 +94,7 @@ end;
 
 @testset "microbial dN balance" begin
     uptake = p[s.ν_N]*sol[s.u_NOM]
-    usage = sol[s.syn_Enz]/p[s.β_NE] + sol[s.syn_B]/p[s.β_NB] + sol[s.Φ_NB]
+    usage = sol[s.syn_Enz]/p[s.β_NEnz] + sol[s.syn_B]/p[s.β_NB] + sol[s.Φ_NB]
     #plot(sol.t, [uptake, usage])
     @test all(isapprox.(uptake, usage, rtol = 1e-6))
 end;
@@ -115,3 +111,8 @@ end;
     @test all(isapprox.(input, change .+ output, rtol = 1e-6))
 end;
 
+@testset "balanced allocation sums to one" begin
+    #plot(sol, vars=[s.α_LT,s.α_RT, s.α_LT+s.α_RT])
+    @test all(isapprox.(sol[s.α_LT + s.α_RT], 1.0, rtol = 1e-8))
+    @test all(isapprox.(sol[s.α_L + s.α_R], 1.0, rtol = 1e-8))
+end;

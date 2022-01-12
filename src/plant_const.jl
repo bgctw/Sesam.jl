@@ -24,7 +24,7 @@ function plant_const(;name)
     ]
     defaults=Pair{Num, Any}[
         # rate not constrained
-        k_PlantN0 => 1000, 
+        k_PlantN0 => 1e3, 
         # take as much N as provide with litter
         u_PlantNmax0 => i_L0/β_Ni0, 
     ]

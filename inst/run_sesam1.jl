@@ -1,84 +1,36 @@
 using Sesam
 using ModelingToolkit, DifferentialEquations
 
-@named s = sesam1()
-@named pl = plant_const()
-
-@parameters t
-D = Differential(t)
-
-sp = compose(ODESystem([
-    # model inputs
-    s.i_L ~ pl.i_L,
-    s.i_IN ~ pl.i_IN,
-    s.β_Ni ~ pl.β_Ni,
-    s.u_PlantNmax ~ pl.u_PlantNmax,
-    s.k_PlantN ~ pl.k_PlantN,
-    # limitation across elements
-    s.syn_B ~ min(s.C_synBC, s.β_NB*s.N_synBN), # TODO add P limitation
-  ], t; name=:sp), s, pl)
-sp = structural_simplify(sp)
-states(sp)
-equations(sp)
-
-p = Dict(
-    s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
-        #which respire and corresponding amount of N must be mineralized)
-    s.κ_E => 0.8,     ##<< amount of recycling enzyme turnover by biomass (
-        # added to assimilable, i.e. uptake instead of R)
-    s.a_E => 0.001*365,   ##<< C biomass allocated to enzymes 1/day /microbial biomass 
-    s.m => 0.005*365,    ##<< maintenance respiration rate   1/day /microbial biomass,    
-    s.τ => 1/60*365,  ##<< biomass turnover rate (12 days)    
-    s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
-    s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
-        # /yr enzyme turnover 60 times a year
-    s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
-    #i_L => t -> 1 - exp(-t),  # litter input
-    #
-    # ----------- N -------------
-    s.i_BN => 0.4, ##<< potential immobilization flux rate 
-    s.β_NE => 3.1,     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
-    s.β_NB => 11.0,
-    #s.l_N => 0.96,       #0.00262647*365     ##<< leaching rate of mineralN lN IN
-    s.l_N => 0.0,       
-    s.ν_N =>  0.9,     # microbial N use efficiency accounting for apparent 
-    ## minceralization of N during uptake in heterogeneous soils
-    pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
-    pl.β_Ni0 => 25,
-    pl.i_IN0 => 0,   ##<< input of mineral N,
-    # for N uptake: take the defaults which take as much N as supplied by litter
-    # pl.u_PlantNmax0 => Inf32, # only constrained by k_PlantN in min function
-    # pl.k_PlantN0 => 10.57, #0.0289652*365     ##<< plant uptake rate first order of IN
-)
-
-u0 = Dict(
-    s.B => 17,
-    s.L => 100,
-    s.R => 1100,
-    #s.cumresp => 0.0,
-    s.α_R => 0.1, # enzyme synthesis into L # TODO model by optimality
-    s.I_N => 0.04, ##<< inorganic pool gN/m2 
-)
-u0[s.L_N] = u0[s.L]/p[pl.β_Ni0]
-u0[s.R_N] = u0[s.R]/p[s.β_NB]
-
-tspan = (0.0,100.0)    
-
-#prob = ODEProblem(sp,[t for t in u0], tspan, [t for t in p])
-#prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
-prob = ODEProblem(sp, u0, tspan, p)
-#prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = solve(prob)
+# see test_sesam for constructing and solving the system
 
 using Plots
-plot(sol, vars=[L,B])
-plot(sol, vars=[I_N])
+plot(sol, vars=[s.L,s.B])
+plot(sol, vars=[s.I_N])
 plot(sol)
-plot(sol, vars=[β_NL])
-# increase of C in system is the same as input
-plot(sol, vars=[s.C_synBC, p[s.β_NB]*s.N_synBN, s.syn_B])
-plot(sol, vars=[β_NL])
+# syn_B is the minimum of C_synBC and C_synBN
+plot(sol, vars=[s.C_synBC, s.C_synBN, s.syn_B])
+plot(sol, vars=[s.β_NR])
+
+plot(sol, vars=[s.α_LT,s.α_RT, s.α_LT+s.α_RT])
+plot(sol, vars=[s.revenue_L,s.revenue_R])
+plot(sol, vars=[s.lim_C, s.lim_N])
+
+
+# --------- why is R accumulating despite N limitation?
+sol[s.u_PlantNmax]
+
+# B is C limited
+plot(sol, vars=[s.Φ_N, s.Φ_Nu, s.Φ_NB, s.Φ_Ntvr])
+plot(sol, vars=[s.Φ_NB]) 
+plot(sol, vars=[s.u_PlantN, s.u_PlantNmax])
+# entire flux by tvr and u is taken up by plant
+# only after R stocks increase towards a steady-state, enough replenishment
+plot(sol, vars=[s.dec_L/s.β_NL, s.dec_R/s.β_NR])
+# 
+plot(sol, vars=[s.dec_R, s.dec_RPot]) # negative dec_R?
+plot(sol, vars=[s.α_R * s.syn_Enz]) # negative dec_R?
+#plot(sol, vars=[s.α_R, s.α_RT, s.α_L, s.α_LT]) # negative dec_R?
+plot(sol, vars=[s.α_R, s.α_L]) # other pools than R near steady-state, slowly accumulating, with it shifting towards its decomposition
 
 
 Dict(p)[i_L]
