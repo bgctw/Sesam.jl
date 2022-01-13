@@ -7,14 +7,15 @@ version = "0.1.0"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 IfElse = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
-julia = "1.6"
 DifferentialEquations = "7.0"
 IfElse = "0.1"
 ModelingToolkit = "8.0"
 Unitful = "1.10"
+julia = "1.6"
 
 [extras]
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"

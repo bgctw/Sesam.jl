@@ -1,7 +1,7 @@
 @named s = sesam3()
 @named pl = plant_const()
 
-# @named s = Sesam.sesam1C()
+# @named s = Sesam.sesam3C()
 # sp = compose(ODESystem([
 #     s.i_L ~ pl.i_L,
 #     # colimitation

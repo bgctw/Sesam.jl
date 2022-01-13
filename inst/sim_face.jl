@@ -2,7 +2,8 @@
 # it consumes (initialized with too high C/N ratio) inorganic N
 
 @named s = sesam3()
-@named pl = plant_face(;t1=520,t2=570)
+@named s = sesam3(use_seam_revenue=true)
+@named pl = plant_face(;t1=20,t2=70)
 
 @named sp = plant_sesam_system(s,pl)
 
@@ -59,22 +60,23 @@ u0N = Dict(
 u0 = merge(u0C, u0N)    
 #u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
-tspan_sim = (0.0,620.0)    
+tspan_sim = (-500,120.0)    
 prob = ODEProblem(sp, u0, tspan_sim, p)
 #sol = solve(prob, saveat=vcat([450],500:0.5:600))
 sol = solve(prob)
 
 using Plots
-tspan = (0,5)
-tspan = (0,500)
-tspan = (500,last(sol.t))
+tspan = first(sol.t) .+ (0,5)
+tspan = first(sol.t) .+ (0,500)
 tspan = (last(sol.t)-5,last(sol.t))
+tspan = (0,last(sol.t))
 plot(sol; tspan)
 plot(sol, vars=[s.L]; tspan)
 plot(sol, vars=[s.R]; tspan)
 plot(sol, vars=[s.R/s.β_NR]; tspan)
 plot(sol, vars=[s.β_NR])
 plot(sol, vars=[s.R + s.L]; tspan)
+#plot!(sol, vars=[s.R + s.L]; tspan)
 
 plot(sol, vars=[s.u_PlantN, s.u_PlantNmax]; tspan)
 plot(sol, vars=[s.I_N]; tspan)
@@ -83,6 +85,7 @@ plot(sol, vars=[s.i_L/s.β_Ni, s.u_PlantN, s.Φ_N, s.Φ_Nu, s.Φ_NB, s.Φ_Ntvr];
 
 plot(sol, vars=[s.lim_C,s.lim_N]; tspan)
 plot(sol, vars=[s.α_L, s.α_R]; tspan)
+plot!(sol, vars=[s.α_L, s.α_R]; tspan)
 plot(sol, vars=[s.invest_Ln, s.invest_Rn]; tspan)
 plot!(sol, vars=[s.return_Ln, s.return_Rn]; tspan, linestyle=:dash)
 
