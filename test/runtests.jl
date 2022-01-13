@@ -4,8 +4,12 @@ using Test
 
 @testset "sesam3" begin
     include("test_sesam3.jl")        
-end
+end;
 
 @testset "plant_face" begin
     include("test_plant_face.jl")        
-end
+end;
+
+@testset "parupdater" begin
+    include("test_parupdater.jl")        
+end;
