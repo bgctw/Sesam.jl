@@ -25,7 +25,7 @@ function sesam3C(;name)
     # @variables (begin
     #     Φ_N(t),[unit = uQ/uT], Φ_Nu(t),[unit = uQ/uT], Φ_NB(t),[unit = uQ/uT], 
     #     u_PlantN(t),[unit = uQ/uT], u_NOM(t),[unit = uQ/uT], u_immNPot(t),[unit = uQ/uT], 
-    #     u_N(t),[unit = uQ/uT], N_synBN(t),[unit = uQ/uT], M_ImbN(t),[unit = uQ/uT], 
+    #     u_NPot(t),[unit = uQ/uT], N_synBN(t),[unit = uQ/uT], M_ImbN(t),[unit = uQ/uT], 
     #     β_NL(t), β_NR(t) 
     # end)
     # @parameters β_NEnz β_NB l_N [unit = uT^-1] ν_N i_BN [unit = uT^-1] 
@@ -72,14 +72,16 @@ function sesam3C(;name)
         dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN + α_R*syn_Enz),
         u_C ~ dec_L + dec_R + κ_E*syn_Enz,
         C_synBCt ~ u_C - syn_Enz/ϵ - r_M,
-        C_synBC ~ IfElse.ifelse(C_synBCt > 0.0, ϵ*C_synBCt, C_synBCt), 
+        #C_synBC ~ IfElse.ifelse(C_synBCt > 0.0, ϵ*C_synBCt, C_synBCt), 
+        C_synBC ~ C_synBCt - ((C_synBCt > 0.0) * (1-ϵ)*C_synBCt), 
         #syn_B ~ C_synBC # define in all-elements model
         r_O ~ u_C - (syn_Enz/ϵ +  syn_B + r_G + r_M), 
         #D(cumresp) ~ r_B + r_tvr,
         r_tvr ~ (1-ϵ_tvr)*tvr_B,
         r_B ~ r_GEnz + r_G + r_M + r_O,
         r_GEnz ~ (1-ϵ)/ϵ * syn_Enz,
-        r_G ~ IfElse.ifelse(syn_B.val > 0.0, (1-ϵ)/ϵ * syn_B, 0.0), 
+        #r_G ~ IfElse.ifelse(syn_B.val > 0.0, (1-ϵ)/ϵ * syn_B, 0.0), 
+        r_G ~ (syn_B.val > 0.0) * (1-ϵ)/ϵ * syn_B, 
         r_tot ~ r_B + r_tvr,
         ]
     ODESystem(eqs; name)    
@@ -94,7 +96,7 @@ function sesam3N(;name)
         dL_N(t),  dR_N(t),  dI_N(t),
         Φ_N(t), Φ_Nu(t), Φ_NB(t), Φ_Ntvr(t),
         u_PlantN(t), u_NOM(t), u_immNPot(t), 
-        u_N(t), N_synBN(t), M_ImbN(t), 
+        u_NPot(t), N_synBN(t), M_ImbN(t), 
         β_NL(t), β_NR(t),
         leach_N(t),
         # need to be specified by coupled system:
@@ -117,11 +119,11 @@ function sesam3N(;name)
         Φ_N ~ Φ_Nu + Φ_NB + Φ_Ntvr,
         Φ_Ntvr ~ r_tvr/β_NB,
         Φ_Nu ~ (1-ν_N) * u_NOM,
-        u_N ~ ν_N * u_NOM + u_immNPot,
+        u_NPot ~ ν_N * u_NOM + u_immNPot,
         u_NOM ~ dec_L/β_NL + dec_R/β_NR + κ_E*syn_Enz/β_NEnz,
         u_immNPot ~ i_BN * I_N,
-        N_synBN ~ u_N - syn_Enz/β_NEnz,
-        M_ImbN ~ u_N - (syn_B/β_NB + syn_Enz/β_NEnz),
+        N_synBN ~ u_NPot - syn_Enz/β_NEnz,
+        M_ImbN ~ u_NPot - (syn_B/β_NB + syn_Enz/β_NEnz),
         Φ_NB ~ M_ImbN - u_immNPot,
         ]
     extend(ODESystem(eqs, t, sts, ps; name), sC)
@@ -157,7 +159,7 @@ function get_revenue_eq_sesam3CN(sN)
     sts = @variables (begin
         α_LT(t), α_RT(t),
         invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
-        invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
+        #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
         revenue_sum(t)
     end)
     # need to be defined in coupled component:
@@ -165,17 +167,18 @@ function get_revenue_eq_sesam3CN(sN)
     eqs = [
         invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
         invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
-        invest_Ln ~ invest_L/(invest_L + invest_R),
-        invest_Rn ~ invest_R/(invest_L + invest_R),
         return_L ~ dec_L * (w_C + w_N/β_NL), 
         return_R ~ dec_R * (w_C + w_N/β_NR), 
-        return_Ln ~ return_L/(return_L + return_R),
-        return_Rn ~ return_R/(return_L + return_R),
         revenue_L ~ return_L / invest_L,
         revenue_R ~ return_R / invest_R,
         revenue_sum ~ revenue_L + revenue_R,
         α_LT ~ revenue_L/revenue_sum,
         α_RT ~ revenue_R/revenue_sum,
+        # auxilary for plotting
+        # invest_Ln ~ invest_L/(invest_L + invest_R),
+        # invest_Rn ~ invest_R/(invest_L + invest_R),
+        # return_Ln ~ return_L/(return_L + return_R),
+        # return_Rn ~ return_R/(return_L + return_R),
         ]
     (;eqs, sts)
 end
@@ -201,9 +204,11 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false)
         syn_B ~ min(C_synBC, C_synBN), 
         C_synBmC ~ min(C_synBN), 
         C_synBmN ~ min(C_synBC), 
-        w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
-        lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N),
+        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
+        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
+        w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
+        w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
+        lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
         D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
