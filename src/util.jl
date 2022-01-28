@@ -36,5 +36,22 @@ function (upd::SystemParUpdater)(pall, pup)
     pall
 end
 
+# soft minimum - check if this reduces length of simplified formulas
+# logaddexp does not work with Num
+# smin(a,b) = -logaddexp(-a,-b)
+# smin(args...) = -logaddexp(.-args)
+
+# does not check x outside bounds to avoid comparison
+logistic_unsafe(x;steepness=1e5) = 1 / (1 + exp(steepness * (-x)))
+smin(a) = a
+# smin(a,b) = logistic_unsafe(a-b) *b + logistic_unsafe(b-a) * a
+smin(a,b) = (a>b) *b + (b>a) * a
+# function smin(a,b,c) 
+#     minab = smin(a,b)
+#     smin(minab,c)
+# end
+# MAYBE implement with mapreduce for more arguments
+
+
 
 

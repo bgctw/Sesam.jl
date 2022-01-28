@@ -2,10 +2,11 @@
 # it consumes (initialized with too high C/N ratio) inorganic N
 
 @named s = sesam3()
-@named s = sesam3(use_seam_revenue=true)
+#@named s = sesam3(use_seam_revenue=true)
 @named pl = plant_face(;t1=20,t2=70)
 
 @named sp = plant_sesam_system(s,pl)
+equations(sp)
 
 p = pC = Dict(
     s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
