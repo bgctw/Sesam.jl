@@ -47,7 +47,7 @@ function sesam3C(;name)
     @variables (begin
         B(t),  L(t),   R(t),  cumresp(t),
         dB(t), dL(t), dR(t), r_tot(t),
-        syn_Enz(t), r_M(t), tvr_B(t),
+        syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t),
         dec_LPot(t), dec_L(t), dec_RPot(t),
         dec_R(t), u_C(t),
         C_synBCt(t), C_synBC(t), r_G(t),
@@ -63,7 +63,7 @@ function sesam3C(;name)
         D(B) ~ dB, dB ~ syn_B - tvr_B,
         D(L) ~ dL, dL ~ -dec_L + i_L,
         D(R) ~ dR, dR ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*syn_Enz,
-        syn_Enz ~ a_E*B,
+        syn_Enz ~ a_E*B, tvr_Enz ~ syn_Enz,
         r_M ~ m*B,
         tvr_B ~ τ*B,
         dec_LPot ~ k_L * L,
@@ -87,7 +87,7 @@ function sesam3C(;name)
     ODESystem(eqs; name)    
 end
 
-function sesam3N(;name)
+function sesam3N(;name, sC = sesam3C(name=:sC))
     @parameters t 
     D = Differential(t)
 
@@ -105,13 +105,12 @@ function sesam3N(;name)
     end)
     ps = @parameters β_NEnz β_NB l_N  ν_N i_BN  
 
-    @named sC = sesam3C()
-    @unpack L, R, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, syn_Enz, r_tvr, κ_E = sC
+    @unpack L, R, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, syn_Enz, tvr_Enz, r_tvr, κ_E = sC
 
     eqs = [
         β_NL ~ L/L_N, β_NR ~ R/R_N,
         D(L_N) ~ dL_N, dL_N ~ -dec_L/β_NL + i_L/β_Ni,
-        D(R_N) ~ dR_N, dR_N ~ -dec_R/β_NR + ϵ_tvr*tvr_B/β_NB + (1-κ_E)*syn_Enz/β_NEnz,
+        D(R_N) ~ dR_N, dR_N ~ -dec_R/β_NR + ϵ_tvr*tvr_B/β_NB + (1-κ_E)*tvr_Enz/β_NEnz,
         D(I_N) ~ dI_N,
         u_PlantN ~ min(u_PlantNmax, k_PlantN*I_N), 
         dI_N ~ i_IN - u_PlantN - leach_N + Φ_N,
@@ -120,7 +119,7 @@ function sesam3N(;name)
         Φ_Ntvr ~ r_tvr/β_NB,
         Φ_Nu ~ (1-ν_N) * u_NOM,
         u_NPot ~ ν_N * u_NOM + u_immNPot,
-        u_NOM ~ dec_L/β_NL + dec_R/β_NR + κ_E*syn_Enz/β_NEnz,
+        u_NOM ~ dec_L/β_NL + dec_R/β_NR + κ_E*tvr_Enz/β_NEnz,
         u_immNPot ~ i_BN * I_N,
         N_synBN ~ u_NPot - syn_Enz/β_NEnz,
         M_ImbN ~ u_NPot - (syn_B/β_NB + syn_Enz/β_NEnz),

@@ -1,4 +1,4 @@
-@named s = sesam3()
+@named s = seam3()
 @named pl = plant_const()
 
 # @named s = Sesam.sesam3C()
@@ -22,8 +22,10 @@ p = pC = Dict(
     s.τ => 1/60*365,  ##<< biomass turnover rate (12 days)    
     s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
-        # /yr enzyme turnover 60 times a year
+    # s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    #     # /yr enzyme turnover 60 times a year
+    s.k_m => 0.05, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.k_N => 60, # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
     pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
@@ -52,12 +54,16 @@ u0 = u0C = Dict(
     s.α_R => 0.1, # enzyme synthesis into L # TODO model by optimality
 )
 u0C[s.α_L] = 1.0 - u0C[s.α_R]
+u0C2 = Dict(
+    s.E_L => u0[s.α_L] * p[s.a_E] * u0[s.B] / (p[s.k_N]),
+    s.E_R => u0[s.α_R] * p[s.a_E] * u0[s.B] / (p[s.k_N]),
+)
 u0N = Dict(
     s.I_N => 0.04, ##<< inorganic pool gN/m2 
     s.L_N => u0[s.L]/p[pl.β_Ni0],
     s.R_N => u0[s.R]/calculate_β_NR_sesam3(p,s) #p[s.β_NB],
     )
-u0 = merge(u0C, u0N)    
+u0 = merge(u0C, u0C2, u0N)    
 #u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
 tspan = (0.0,100.0)    
@@ -66,7 +72,19 @@ tspan = (0.0,100.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3 = solve(prob)
+sol = sol_seam3 = solve(prob)
+
+i_tmp = () -> begin
+    #using Plots
+    plot(sol_seam3, vars=[s.E_L])
+    plot!(sol_seam3, vars=[s.E_R])
+    plot(sol_seam3, vars=[s.B])
+    plot!(sol_sesam3, vars=[s.B])
+    plot(sol_seam3, vars=[s.syn_Enz])
+    plot!(sol_sesam3, vars=[s.syn_Enz])
+    plot(sol_seam3, vars=[s.tvr_Enz])
+    plot!(sol_sesam3, vars=[s.tvr_Enz])
+end
 
 @testset "non-negative pools" begin
     #st = first(states(sp))
@@ -84,7 +102,7 @@ end;
 end;
 
 @testset "system dC balance" begin
-    change = sol[s.dB + s.dL + s.dR]
+    change = sol[s.dB + s.dL + s.dR + s.dE_L + s.dE_R]
     output = sol[s.r_tot] 
     input = sol[s.i_L]
     #plot(sol.t, [input, output, change, change .+ output])
@@ -100,7 +118,7 @@ end;
 end;
 
 @testset "system dN balance" begin
-    change = sol[s.dB]/p[s.β_NB] + sol[s.dL_N + s.dR_N + s.dI_N]
+    change = sol[s.dB]/p[s.β_NB] + sol[s.dL_N + s.dR_N + s.dI_N] + sol[s.dE_L + s.dE_R]/p[s.β_NEnz]
     output = sol[s.u_PlantN + s.leach_N] 
     input = sol[s.i_L/s.β_Ni + s.i_IN]
     #sol[s.leach_N]
