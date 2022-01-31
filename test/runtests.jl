@@ -10,6 +10,11 @@ end;
     include("test_plant_face.jl")        
 end;
 
-@testset "parupdater" begin
-    include("test_parupdater.jl")        
+@testset "seam3" begin
+    include("test_seam3.jl")        
 end;
+
+
+# @testset "parupdater" begin
+#     include("test_parupdater.jl")        
+# end;

@@ -1,5 +1,5 @@
 function simple_system(;name=:sys)
-    @parameters t, p1, p2, p3
+    @parameters t p1 p2 p3
     D = Differential(t)
     @variables tmp(t)
     sys = ODESystem([D(tmp)~p1 + p2 + p3]; name)
@@ -10,6 +10,7 @@ function simple_system(;name=:sys)
 end
 
 @testset "SystemParUpdater" begin
+    @parameters t p1 p2 p3
     sys, prob, u0, p0 = simple_system()
     parameters(sys)
     d_up = Dict(p3 => 0.3, p1 => 0.1)
