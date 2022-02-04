@@ -77,10 +77,11 @@ function seam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false)
         syn_B ~ min(C_synBC, C_synBN), 
         C_synBmC ~ min(C_synBN), 
         C_synBmN ~ min(C_synBC), 
-        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
-        w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
-        w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
+        # need to limit, otherwise danger of Inf and nan after too long steps
+        w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
+        w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
+        # w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
+        # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
         D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
