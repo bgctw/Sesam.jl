@@ -34,6 +34,7 @@ p = pC = Dict(
     pl.β_Ni0 => 30.0,
     #pl.i_IN0 => 0.0,   ##<< input of mineral N,
     pl.i_IN0 => 0.7,   ##<< 7kg/ha/yr
+    pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 

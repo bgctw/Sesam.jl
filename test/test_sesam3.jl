@@ -66,7 +66,13 @@ tspan = (0.0,100.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3 = solve(prob)
+sol = sol_sesam3 = solve(prob);
+
+i_plot = () -> begin
+    #using Plots
+    plot(sol)
+    plot(sol, vars=[s.R])
+end
 
 @testset "non-negative pools" begin
     #st = first(states(sp))

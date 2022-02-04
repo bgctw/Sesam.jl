@@ -1,6 +1,8 @@
 using Sesam
 using ModelingToolkit, DifferentialEquations
 using Test
+using DistributionFits
+using MTKHelpers
 
 @testset "sesam3" begin
     include("test_sesam3.jl")        

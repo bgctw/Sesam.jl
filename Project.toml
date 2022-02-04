@@ -4,19 +4,19 @@ authors = ["Thomas Wutzler <twutz@bgc-jena.mpg.de> and contributors"]
 version = "0.1.0"
 
 [deps]
+DataInterpolations = "82cc6244-b520-54b8-b5a6-8a565e85f1d0"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
+DistributionFits = "45214091-1ed4-4409-9bcf-fdb48a05e921"
 IfElse = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 LogExpFunctions = "2ab3a3ac-af41-5b50-aa03-7779005ae688"
 MTKHelpers = "2725b469-bb7f-4d1a-ba58-ced332a70bc7"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
-Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [compat]
 DifferentialEquations = "7.0"
 IfElse = "0.1"
 ModelingToolkit = "8.0"
-Unitful = "1.10"
 julia = "1.6"
 
 [extras]

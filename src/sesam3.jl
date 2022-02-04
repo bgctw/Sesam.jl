@@ -1,4 +1,4 @@
-function sesam3C(;name)
+function sesam3C(;name, k_N=60.0)
     # @parameters t [unit = uT]
     # D = Differential(t)
 
@@ -41,13 +41,14 @@ function sesam3C(;name)
     D = Differential(t)
 
     @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
-    @parameters k_L  k_R  k_mN  
+    @parameters k_L  k_R  k_mN k_N=k_N
     @parameters α_R0
 
     @variables (begin
         B(t),  L(t),   R(t),  cumresp(t),
         dB(t), dL(t), dR(t), r_tot(t),
         syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t),
+        E_L(t), E_R(t),
         dec_LPot(t), dec_L(t), dec_RPot(t),
         dec_R(t), u_C(t),
         C_synBCt(t), C_synBC(t), r_G(t),
@@ -83,6 +84,8 @@ function sesam3C(;name)
         #r_G ~ IfElse.ifelse(syn_B.val > 0.0, (1-ϵ)/ϵ * syn_B, 0.0), 
         r_G ~ (syn_B.val > 0.0) * (1-ϵ)/ϵ * syn_B, 
         r_tot ~ r_B + r_tvr,
+        E_L ~ (α_L * syn_Enz)/k_N,
+        E_R ~ (α_R * syn_Enz)/k_N,
         ]
     ODESystem(eqs; name)    
 end
