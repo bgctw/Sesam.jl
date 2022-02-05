@@ -3,7 +3,9 @@ model i_L and β_Ni as as step function increased by factor fac_int at t in [t1,
 Superimpose a seasonal pattern on the litter input.
 """
 function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2, 
-    autumn_start=10/12, autumn_end = 11/12, share_autumn=0.5, k_Lagr=12/2, k_PlantN0v = 100, biasfac=1.0)
+#    autumn_start=10/12, autumn_end = 11/12, 
+    autumn_start=8.5/12, autumn_end = 11.5/12, 
+    share_autumn=0.5, k_Lagr=12/2, k_PlantN0v = 100)
     @parameters t 
     D = Differential(t)
     @parameters i_L0  i_IN0  β_Ni0 t1=t1 t2=t2 fac_inc=fac_inc
@@ -13,25 +15,27 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
     # model gives slightly higher litter input
     # ad-hoc correct for providiing slighly lower 
     # amount in autumn
-    @parameters biasfac=biasfac
-    
-
+  
+    # Distribution of litterfall within year (between 0 and 1)
+    d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, fit_mode_flat(LogitNormal, 0.3; peakedness = 3))
     @variables (begin
         i_L(t), β_Ni(t), i_IN(t),
         i_L_anomaly(t), i_L_annual(t), β_Ni_annual(t),
         Lagr(t), i_Lagr(t), dec_Lagr(t), d_Lagr(t),
-        u_PlantNmax(t), k_PlantN(t), biasfac_agr(t)
+        u_PlantNmax(t), k_PlantN(t), inc_period(t)
     end) 
+    smooth_dt = 1/12/2
     eqs = [
         D(Lagr) ~ d_Lagr, d_Lagr ~ i_Lagr - dec_Lagr,
         dec_Lagr ~ k_Lagr*Lagr,
-        # put entire bias to agr in autumn
-        biasfac_agr ~ 1 + (biasfac - 1)/share_autumn,
-        i_Lagr ~ share_autumn * i_L_annual * biasfac_agr * i_L_anomaly,
+        i_Lagr ~ share_autumn * i_L_annual * i_L_anomaly,
         i_L ~ (1-share_autumn) * i_L_annual + dec_Lagr,
-        i_L_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*i_L0, i_L0), 
-        β_Ni_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*β_Ni0, β_Ni0),
-        i_L_anomaly ~ get_iL_anomaly(t, autumn_start, autumn_end),
+        # i_L_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*i_L0, i_L0), 
+        # β_Ni_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*β_Ni0, β_Ni0),
+        inc_period ~ smoothstep(t, t1, smooth_dt) * (1-smoothstep(t, t2, smooth_dt)),
+        i_L_annual ~ i_L0 * (1 + (fac_inc-1)*inc_period), 
+        β_Ni_annual ~ β_Ni0 * (1 + (fac_inc-1)*inc_period),
+        i_L_anomaly ~ get_iL_anomaly(t, d_lit_agr),
         β_Ni ~ β_Ni_annual, # does not change with season
         i_IN ~ i_IN0, 
         u_PlantNmax ~ u_PlantNmax0,
@@ -44,8 +48,6 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
         u_PlantNmax0 => i_L0/β_Ni0, 
     ]
     continuous_events = vcat(
-        [t-yr ~ autumn_start for yr in -500:200],
-        [t-yr ~ autumn_end for yr in -500:200],
         [
         t ~ t1,
         t ~ t2,
@@ -53,15 +55,11 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
     ODESystem(eqs,t; name, defaults, continuous_events)    
 end
 
-function get_iL_anomaly(t, autumn_start, autum_end)
-    ty = t - floor(t)
-    #dlit = shifloNormal(autumn_start, autum_end)
-    dlit = Uniform(autumn_start, autum_end)
-    # at the upper border return already 0
-    ty == autum_end ? 0.0 :  pdf(dlit, ty) 
-    #(1-share_autumn) + pdf(dlit, ty) * share_autumn
-end
-@register_symbolic get_iL_anomaly(t, autumn_start, autum_end)
+@register_symbolic smoothstep(t, t_step::Number, dt::Number)
+
+
+get_iL_anomaly(t, dist) = pdf(dist, t - floor(t)) 
+@register_symbolic get_iL_anomaly(t, dist::Distribution)
 
 
 function f_interpolate9(t, sol, numref)

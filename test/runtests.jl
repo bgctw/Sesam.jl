@@ -12,6 +12,14 @@ end;
     include("test_plant_face.jl")        
 end;
 
+@testset "plant_face_fluct" begin
+    include("test_plant_face_fluct.jl")        
+end;
+
+@testset "util" begin
+    include("test_util.jl")        
+end;
+
 @testset "seam3" begin
     include("test_seam3.jl")        
 end;
