@@ -10,7 +10,8 @@ using MTKHelpers
 # name both systems s, so that can use same keys in parameters
 ss = sesam3(;name=:s)
 s = se = seam3(;name=:s)
-@named pl = plant_face_fluct()
+t1 = 0; t2 = 100
+@named pl = plant_face_fluct(;t1,t2)
 
 p = pC = Dict(
     s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
@@ -53,17 +54,62 @@ pN = Dict(
 p = merge(pC, pN)
 
 get_litter_input_fake_system = () -> begin
+    # solve the pl system and setup fake pl system that returns i_L from solutions
+    # pl,p need to be defined
+    
     #pls = structural_simplify(pl)
     #@unpack Lagr, i_L0, β_Ni0, i_IN0 = pls
     #ps = Dict(i_L0 => p[pl.i_L0], β_Ni0  => p[pl.β_Ni0], i_IN0 => p[pl.i_IN0])
-    #@named plse = embed_system(pl)
+    @named plse = embed_system(pl)
     prob_pl = ODEProblem(plse, [pl.Lagr => p[pl.i_L0]/2 / p[pl.k_Lagr]], (-500,200), p)
-    sol_pl = solve(prob_pl, Vern7())
-    plf = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl);
-end
-plf = get_litter_input_fake_system()
+    # not not work with bias, just accept difference in litter input
+    prob_pl_biased = prob_pl #update_statepar(ProblemParSetter(plse, (pl.biasfac,)), (400/413,), prob_pl)
+    sol_pl = solve(prob_pl_biased, Vern7())
+    plf = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl, t1, t2);
+    #
+    # repeat with annually averaged litter input - here without fake
+    # ps_plse = ProblemParSetter(plse, (pl.share_autumn, pl.Lagr))
+    # prob_pl_ann = update_statepar(ps_plse, (0.0, 0.0), prob_pl);
+    # sol_pl_ann = solve(prob_pl_ann, Vern7())
+    # plf_ann = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl_ann);
 
-#sim_u0steady = () -> begin
+    pl_ann = plf_ann = plant_face(;name=:pl, t1, t2)
+    plf, plf_ann     
+end
+plf, plf_ann = get_litter_input_fake_system()
+
+i_inspect_integrated_litter_input = () -> begin
+    # compose a system that integrates pl.i_L
+    function rep_plf(pl;name, simplify=true)
+        @parameters t
+        D = Differential(t)
+        sts = @variables x(t)
+        # integrate of i_L to check annual litter inputs
+        tmp = compose(ODESystem([
+            D(x) ~ pl.i_L
+            ],t,sts,[];name), pl)
+        simplify ? structural_simplify(tmp) : tmp
+    end
+    @named plf_rep = rep_plf(plf)
+    @unpack x = plf_rep
+    prob_tmp = ODEProblem(plf_rep, [x => 0.0], (-200,0), p)
+    sol_tmp = solve(prob_tmp, solver);
+    # compute longterm litter input
+    tmp = (sol_tmp[x] ./ (sol_tmp.t .- sol_tmp.t[1]))
+    lines(sol_tmp.t, tmp)
+    lines(last(sol_tmp.t,100), last(tmp,100))
+    # indeed there is slightly biased upwards 413/400
+    # -> adjusted by providing biasfac in solution of plf of 400/413
+    #
+    ts1 = range(-40.0,-2.0,length=200)
+    ts2 = ts1 .+ 1.0
+    collect(ts2 .- ts1) # one year difference each
+    tmp = sol_tmp(ts2, idxs=x).u .- sol_tmp(ts1, idxs=x).u
+    lines(ts2, tmp)
+    # the annual litter input is fluctuating quite a lot
+end
+
+sim_u0steady = () -> begin
     u0C = Dict(
         s.B => 17,
         s.L => 100,
@@ -87,13 +133,17 @@ plf = get_litter_input_fake_system()
     )
     u00 = merge(u0C, u0C2, u0N, u0p)    
     #u00[s.R]/u00[s.R_N] # smaller p[s.β_NB]
-    tspan = (0.0,500.0)
-    @named ssp0 = plant_sesam_system(se,plf)
-    prob0 = ODEProblem(ssp0, u00, tspan, p)
+    tspan_spinup = (-800.0,0.0)
+    #@named ssp0 = plant_sesam_system(se,plf)
+    #
+    @named ssp0 = plant_sesam_system(se,plf_ann)
+    prob0 = ODEProblem(ssp0, u00, tspan_spinup, p)
     # pss_tmp = ProblemParSetter(ssp0, (pl.share_autumn, pl.Lagr))
     # prob0s = update_statepar(pss_tmp, (0.0, 0.0), prob0)
     #prob0s = deepcopy(prob0)
     sol = sol_sesam3s0 = solve(prob0);
+    #plot(sol, vars=[s.R, s.L])
+    #plot(sol, tspan = (-5,0), vars=[s.R]) # only slight increase still
     k = first(states(ssp0))
     u0s = Dict(k => sol[k,end] for k in states(ssp0))
     #print(u0s) # outputs code that can b pasted for u0
@@ -116,74 +166,107 @@ variants = @chain IterTools.product((:seam, :sesam),(:seasonal, :annual)) begin
     transform(AsTable(Cols(:enzyme,:litter)) => ByRow(t -> "$(t.enzyme)_$(t.litter)") => :label)
 end
 variants[!,:sol] = Vector{Any}(fill(missing,nrow(variants)))
-typeof(variants.sol)
+#typeof(variants.sol)
 
-tspan = (-80.0,50.0)
+# inspect what goes wrong at instability with displaying state
+#tspan = (-80.0,50.0)
+tspan = (-200.0,50.0)
 solver = Vern7() # implicit method
 #solver = Vern9() # implicit method
 #solver = Rodas5()
-@named sep = plant_sesam_system(se,pl)
+@named sep = plant_sesam_system(se,plf)
+ps_se = ProblemParSetter(sep, states(sep))
 probe = ODEProblem(sep, u0, tspan, p)
-@named ssp = plant_sesam_system(ss,pl)
+@named ssp = plant_sesam_system(ss,plf)
 probs = ODEProblem(ssp, u0, tspan, p)
+ps_ss = ProblemParSetter(ssp, states(ssp))
+
+ue_tmp = copy(probe.u0)
+check_unstable_e = (dt,u,p,t) -> begin
+    !any(isnan,u) && return false
+    @show t,label_state(ps_se,u)
+    ue_tmp[:] .= u
+    true
+end
+us_tmp = copy(probs.u0)
+check_unstable_s = (dt,u,p,t) -> begin
+    !any(isnan,u) && return false
+    @show t,label_state(ps_ss,u)
+    us_tmp[:] .= u
+    true
+end
 
 # first both seam3 and sesam3 with fluctuating litter input
 sol = variants[findfirst(variants.label .== "seam_seasonal"),:sol] = sol_seam3f = 
-    solve(probe, solver; tspan, abstol=1e-8);
+    solve(probe, solver; tspan, abstol=1e-8, unstable_check=check_unstable_e);
 sol = variants[findfirst(variants.label .== "sesam_seasonal"),:sol] = sol_sesam3f = 
-    solve(probs, solver; tspan, abstol=1e-8);
+    solve(probs, solver; tspan, abstol=1e-8, unstable_check=check_unstable_s);
 
-plot(sol_seam3f, vars=[s.I_N])
-plot(sol_sesam3f, vars=[s.I_N])
+i_inspect_instability = () -> begin  
+    probi = remake(probe, u0 = sol[end])
+    soli = solve(probi, solver; tspan=(sol.t[end], last(tspan)), abstol=1e-8, unstable_check=check_unstable_seas)
 
-tend = maximum(sol_sesam3f.t)
-ts = tend .+ (-0.5, +0.5)
-tse = tend .+ (-0.5, 0.0)
-plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.I_N])
-plot!(sol_seam3f, tspan=(-75,maximum(sol_sesam3f.t)+1), vars=[s.I_N])
+    plot(soli, vars=[s.α_L, s.α_R])
+    label_state(ps_seas, u_tmp)
+    plot(sol_seam3f, vars=[s.I_N])
+    plot(sol_sesam3f, vars=[s.I_N])
 
-plot(sol_sesam3f, tspan=ts, vars=[s.I_N])
-plot!(sol_sesam3f, tspan=tse, vars=[s.I_N], xlim=ts)
-plot!(sol_sesam3f, tspan=ts, vars=[s.i_L], xlim=ts)
-plot!(sol_seam3f, tspan=ts, vars=[s.i_L], xlim=ts)
+    tend = maximum(sol_sesam3f.t)
+    ts = tend .+ (-0.5, +0.5)
+    tse = tend .+ (-0.5, 0.0)
+    plot(sol_sesam3f, tspan=ts) # check infinities
+    plot(sol_sesam3f, tspan=ts, ylim=(0,1)) # infinities
+    plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.I_N], legend=:topleft)
+    Plots.plot!(sol_seam3f, tspan=(-75,maximum(sol_sesam3f.t)+1), vars=[s.I_N])
 
-plot(sol_seam3f, tspan=ts, vars=[s.α_R], xlim=ts)
-plot!(sol_sesam3f, tspan=tse, vars=[s.α_R], xlim=ts)
+    plot(sol_sesam3f, tspan=ts, vars=[s.I_N])
+    Plots.plot!(sol_sesam3f, tspan=ts, vars=[s.I_N])
+    Plots.plot!(sol_sesam3f, tspan=ts, vars=[s.i_L])
+    Plots.plot!(sol_seam3f, tspan=ts, vars=[s.i_L])
 
-plot(sol_seam3f, tspan=ts, vars=[s.E_R], xlim=ts)
-plot!(sol_sesam3f, tspan=tse, vars=[s.E_R], xlim=ts)
+    plot(sol_seam3f, tspan=ts, vars=[s.α_R], xlim=ts)
+    plot!(sol_sesam3f, tspan=tse, vars=[s.α_R], xlim=ts)
 
-plot(sol_seam3f, tspan=ts, vars=[s.C_synBC, s.C_synBN], xlim=ts)
-plot!(sol_sesam3f, tspan=tse, vars=[s.C_synBC, s.C_synBN], xlim=ts)
+    plot(sol_sesam3f, tspan=tse, vars=[s.E_R])
+    Plots.plot!(sol_seam3f, tspan=ts, vars=[s.E_R])
 
-plot(sol_seam3f, tspan=ts, vars=[s.w_C, s.w_N], xlim=ts)
-plot!(sol_sesam3f, tspan=tse, vars=[s.w_C, s.w_N], xlim=ts)
+    plot(sol_seam3f, tspan=ts, vars=[s.C_synBC, s.C_synBN], xlim=ts)
+    plot!(sol_sesam3f, tspan=tse, vars=[s.C_synBC, s.C_synBN], xlim=ts)
 
+    plot(sol_seam3f, tspan=ts, vars=[s.w_C, s.w_N], xlim=ts)
+    Plots.plot!(sol_sesam3f, tspan=tse, vars=[s.w_C, s.w_N], xlim=ts)
 
-
-plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.R])
-plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.u_PlantN, s.u_PlantNmax])
-
-plot(sol_sesam3s, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.u_PlantN, s.u_PlantNmax])
-plot(sol_seam3s, tspan=(-75,maximum(sol_sesam3f.t)+1), vars=[s.u_PlantN, s.u_PlantNmax])
-plot(sol_sesam3s, tspan=(-10,0), vars=[s.I_N])
-plot(sol_sesam3s, tspan=(-10,0), vars=[s.leach_N])
-plot(sol_sesam3s, tspan=(-10,0), vars=[s.R/s.R_N])
-plot(sol_sesam3s, vars=[s.R])
+    plot(sol_seam3f, vars=[s.w_C, s.w_N])
+    plot(sol_sesam3f, vars=[s.w_C, s.w_N])
 
 
+    plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.R])
+    plot(sol_sesam3f, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.u_PlantN, s.u_PlantNmax])
+
+    plot(sol_sesam3s, tspan=(-75,maximum(sol_sesam3f.t)), vars=[s.u_PlantN, s.u_PlantNmax])
+    plot(sol_seam3s, tspan=(-75,maximum(sol_sesam3f.t)+1), vars=[s.u_PlantN, s.u_PlantNmax])
+    plot(sol_sesam3s, tspan=(-10,0), vars=[s.I_N])
+    plot(sol_sesam3s, tspan=(-10,0), vars=[s.leach_N])
+    plot(sol_sesam3s, tspan=(-10,0), vars=[s.R/s.R_N])
+    plot(sol_sesam3s, vars=[s.R])
+end
 
 # next parameterize plant model for non-fluctuating litter input
 # this is achieved by setting the share of autumn input to zero
-pse_s = ProblemParSetter(sep, (pl.share_autumn, pl.Lagr))
-probe_s = update_statepar(pse_s, (0.0, 0.0), probe);
-pss_s = ProblemParSetter(ssp, (pl.share_autumn, pl.Lagr))
-probs_s = update_statepar(pss_s, (0.0, 0.0), probs);
+# pse_s = ProblemParSetter(sep, (pl.share_autumn, pl.Lagr))
+# probe_ann = update_statepar(pse_s, (0.0, 0.0), probe);
+# pss_s = ProblemParSetter(ssp, (pl.share_autumn, pl.Lagr))
+# probs_ann = update_statepar(pss_s, (0.0, 0.0), probs);
+
+@named sep_ann = plant_sesam_system(se,plf_ann)
+probe_ann = ODEProblem(sep_ann, u0, tspan, p)
+@named ssp_ann = plant_sesam_system(ss,plf_ann)
+probs_ann = ODEProblem(ssp_ann, u0, tspan, p)
 
 sol = variants[findfirst(variants.label .== "seam_annual"),:sol] = sol_seam3s = 
-    solve(probe_s, solver; tspan, abstol=1e-8);
+    solve(probe_ann, solver; tspan, abstol=1e-8);
 sol = variants[findfirst(variants.label .== "sesam_annual"),:sol] = sol_sesam3s = 
-    solve(probs_s, solver; tspan, abstol=1e-8);
+    solve(probs_ann, solver; tspan, abstol=1e-8);
 
 
 
@@ -198,12 +281,10 @@ end
 
 cm2inch(x) = x/2.54
 cm2inch.((8.3,7))
-inch2px(x, dpi=Plots.DPI) = x * dpi
-dpi_pub = 300
-#plot!(dpi=dpi_pub, size = inch2px.(cm2inch.((8.3,7)), dpi_pub))
 figpath = "inst/22paper_upscaling"
 
 i_plot_Plots = () -> begin
+    #depr: now using Makie instead of Plots
     #using Plots
     pla = (
         palette = :Dark2_6,
@@ -275,7 +356,7 @@ update_theme!(axis_theme)
 function plotm_vars!(ax, vars, tspan=tspan; variants = variants, legend_position=:rr, kwargs...)
     #row = first(Tables.namedtupleiterator(select(variants, :sol, :label, :linestyle, :color)));
     for row in Tables.namedtupleiterator(select(variants, :sol, :label, :linestyle, :color))
-        @show typeof(row)
+        #@show typeof(row)
         series_sol!(ax, row.sol, vars; tspan, labels=[row.label], 
         linestyle=row.linestyle,
         solid_color=row.color,
@@ -287,9 +368,11 @@ function plotm_vars!(ax, vars, tspan=tspan; variants = variants, legend_position
 end
 #save("tmp.pdf", fig, pt_per_unit = 1)
 
+include("cairo_makie_util.jl")
+
 fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="enzyme pool E_R (g/m2)");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
-savefig(joinpath(figpath,"fluct_E_R.pdf"))
+save(joinpath(figpath,"fluct_E_R.pdf"), fig, pt_per_unit = 1)
 
 fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
 ts = (-5.0,min(5.0,maximum(sol_seam3f.t)))
@@ -300,20 +383,35 @@ save(joinpath(figpath,"fluct_litterinput.pdf"), fig, pt_per_unit = 1)
 
 fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
 plotm_vars!(ax, [s.leach_N], (-20,5); variants = variants[[1,3,4],:], legend_position=:lt)
-display(fig)
 save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
 
 fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="R (g/m2)");
 plotm_vars!(ax, [s.R], (first(tspan),0); variants = variants[[1,2,3,4],:], legend_position=:lt)
+# after 200 years still increasing?
+# slightly higher annual integrated litter input?
+
+
+fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="I_N (g/m2)");
+plotm_vars!(ax, [s.I_N], (first(tspan),0); variants = variants[[1,2,3,4],:], legend_position=:lt)
+# consistently higher than with constant litter input
+
+fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="α_L (1/1)");
+plotm_vars!(ax, [s.α_L], (-1,0); variants = variants[[1,3],:], legend_position=:lb)
+# annual cycle: after winter shiftring towards R and in autum rapidly shifting towards L 
+
+# plant uptake matches maximum
+fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="plant uptake (g/m2/yr)");
+series_sol!(ax, sol_sesam3f, [s.u_PlantNmax, s.u_PlantN], tspan=(-2,2), linewidth=0.8)
+axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
 display(fig)
 
-fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
-plotm_vars!(ax, [s.leach_N], (-20,5); variants = variants[[1],:], legend_position=:lt)
-display(fig)
-series_sol!(ax, )
+# also the same N pool
+fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="CN of R pool (g/g)");
+plotm_vars!(ax, [s.R/s.R_N], (-1,0); variants = variants[[2,4],:], legend_position=:lb)
 
-sol = sol_seam3f
-plot(sol, tspan=(-80,-0), vars=[s.R])
+
+
+
 i_plot = () -> begin
     # using Plots
     plot(sol, vars=[s.R])
@@ -353,8 +451,4 @@ i_plot = () -> begin
 
     plot(sol, vars=[pl.i_L / pl.β_Ni])
 end
-
-using CairoMakie
-lines(sol.t, sol[s.L])
-scatter(sol_seam3f.t[1:20], sol_seam3f[s.L,1:20])
 
