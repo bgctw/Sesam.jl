@@ -9,7 +9,7 @@ using MTKHelpers
 export plant_const, plant_face, plant_face_fluct, plant_face_fluct_fake,
     sesam3, seam3, plant_sesam_system
 export calculate_β_NR_sesam3
-export smoothstep
+#export smoothstep
 #export SystemParUpdater
 
 #include("units.jl")
