@@ -6,6 +6,7 @@ using ModelingToolkit, DifferentialEquations
 using DataFrames, Tables
 using Distributions
 using Chain
+using MTKHelpers
 
 tspinup = 500.0; tface=100.0
 #@named s = sesam3(use_seam_revenue=true)
@@ -34,7 +35,7 @@ p = pC = Dict(
     pl.β_Ni0 => 30.0,
     #pl.i_IN0 => 0.0,   ##<< input of mineral N,
     pl.i_IN0 => 0.7,   ##<< 7kg/ha/yr
-    pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
+    #pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 
@@ -70,7 +71,7 @@ u0N = Dict(
 u0 = merge(u0C, u0N)    
 
 tspan_sim = (-tspinup,tface) # simulate 500 yrs spinup, increase at yr 20
-saveat=[0.0,tface] # save at start of increase and 50yrs later
+saveat=[0.0,tface] # save at start of increase and tface years later
 prob0 = ODEProblem(sp, u0, tspan_sim, p) #2ms
 #prob0 = ODEProblem(sp, u0, tspan_sim, p; jac=true) # actually slower: 4ms
 sol0t = sol = solve(prob0)
@@ -130,9 +131,8 @@ names_opt_all = df_dist.par
 names_opt = copy(names_opt_all)
 
 
-using MTKHelpers
 ps = ProblemParSetter(sp, names_opt)
-popt = get_paropt(ps, prob0; label=Val(true))
+popt = get_paropt_labeled(ps, prob0)
 prob = update_statepar(ps, popt, prob0)
 # upd! = SystemParUpdater(collect(names_opt), sp)
 # prob = deepcopy(prob0)
@@ -151,7 +151,7 @@ using DistributionFits
 
 #d1 = fit(LogNormal, @qp_m(8.), @qp_u(16.))
 f1v = (dType, mode, upper) -> fit(dType, @qp_m(mode), @qp_uu(upper))
-transform!(df_dist, [:dType,:mode,:upper] => ByRow(f1v) => :dist)
+transform!(df_dist, Cols(:dType,:mode,:upper) => ByRow(f1v) => :dist)
 
 
 """
@@ -173,9 +173,14 @@ par = s.β_NB
 x = p[par]
 calculate_parbounds(dist, x)
 
+#---- repeat with different δ_cp 
+δ_cp = 0.1
+δ_cp = 0.2
+calculate_parbounds(dist, x; δ_cp)
+
 f2v = (par, dist) -> begin
     ref = p[par]
-    cp_par, cp_sens_lower, cp_sens_upper, sens_lower, sens_upper = calculate_parbounds(dist,ref)
+    cp_par, cp_sens_lower, cp_sens_upper, sens_lower, sens_upper = calculate_parbounds(dist,ref; δ_cp)
     (;ref, sens_lower, sens_upper, cp_par, cp_sens_lower, cp_sens_upper)
 end
 transform!(df_dist, [:par,:dist,] => ByRow(f2v) => AsTable)
@@ -211,7 +216,7 @@ end
 using RCall
 if !@isdefined N 
     N = 100
-    N = 5000
+    #N = 5000
     N = 5001 # replicate
     #N = 10_000
     #N = 25_000
@@ -221,96 +226,6 @@ end
 
 # ranges of cumulative probabilities given to R
 
-function sens_all_paramters()     
-    df_cfopt = @chain df_dist begin
-        select(:par, :cp_sens_lower, :cp_sens_upper, :dist) 
-        transform(:par => ByRow(strip_namespace ∘ symbol) => :par) 
-        subset(:par => ByRow(x -> x in strip_namespace.(symbol.(names_opt))))
-    end
-    cp_design = rcopy(R"""
-    library(sensitivity)
-    set.seed(0815)
-    dfr <- $(select(df_cfopt, :par, :cp_sens_lower, :cp_sens_upper))
-    get_sample <- function(){
-    sapply(1:nrow(dfr), function(i){
-        runif($(N), min = dfr$cp_sens_lower[i], max = dfr$cp_sens_upper[i])
-    })
-    }
-    #plot(density(get_sample()$k_L))
-    #lines(density(get_sample()$k_R))
-    #sensObject <- sobolSalt(NULL,get_sample(), get_sample(), nboot=100) 
-    sensObject <- soboltouati(NULL,get_sample(), get_sample(), nboot=100) # will be used down
-    sensObject$X
-    """);
-    size(cp_design) # nsample x npar
-
-    # transform cumulative probabilities back to quantiles
-    q_design = similar(cp_design)
-    for i_par in 1:size(cp_design,2)
-        q_design[:,i_par] .= quantile.(df_cfopt.dist[i_par], cp_design[:,i_par])
-    end
-    #q_design
-
-    #---------- compute the response to changed parameters
-    nsamp = 10
-    nsamp = size(q_design,1)
-    #i_samp = 1
-    som_change0 = som_change(sol0)
-    som_changes = Array{Union{Float64,Missing}}(missing,length(som_change0), nsamp)
-    println("computing $nsamp samples.")
-    for i_samp in 1:nsamp
-        popt = q_design[i_samp,:]
-        #upd!(prob.p, popt)
-        prob = update_statepar(ps, popt, prob0)
-        sol_p = solve(prob; saveat) 
-        #plot!(sol_p, vars=[s.L + s.R], tspan=(-20,tface))
-        if sol_p.retcode == :Success 
-            som_changes[:,i_samp] .= values(som_change(sol_p))
-        end
-        mod(i_samp,1000) == 0 && print("$i_samp, ")
-    end
-    df_som_changes = DataFrame(transpose(som_changes), collect(keys(som_change0)))
-    describe(df_som_changes.csomD)
-
-    #-------- tell the results to sensitivity in R 
-    @rput df_som_changes;
-    R"""
-    tell(sensObject, df_som_changes$csomD)
-    """
-
-    # extracting S,T and plotting below
-
-    R"""
-    rownames(sensObject$S) <- rownames(sensObject$T) <- dfr$par
-    #print(sensObject)
-    pdf(paste0("inst/22paper_upscaling/sobol_N=", $N, ".pdf"), width=9, height=5)
-    if (inherits(sensObject,"sobolSalt")) {
-        plot(sensObject, choice = 1)
-        plot(sensObject, choice = 2)
-    } else {
-        plot(sensObject)
-    }
-    dev.off()
-    sensObject
-    """
-
-
-    R"""
-    y <- rnorm(88000)
-    tell(sensObject,y)
-    x$T
-    """
-
-    R"""
-    str(sensObject)
-    """
-
-    R"""
-    sensObject$nboot
-    """
-    df_dist_opt = df_cfopt # 
-end
-
 
 #-------- second pass with fewer vars but larger N for variance
 #names_omit = [s.k_mN, s.l_N, s.ϵ_tvr, s.ν_N]
@@ -318,7 +233,7 @@ names_omit = []
 names_opt = setdiff(names_opt_all, names_omit)
 #upd! = SystemParUpdater(collect(names_opt), sp)
 ps = ProblemParSetter(sp, names_opt)
-popt0 = get_paropt(ps, prob0; label=Val(true))
+popt0 = get_paropt_labeled(ps, prob0)
 prob = update_statepar(ps, popt0, prob0)
 
 #N = 10 # for testing setting y
@@ -345,6 +260,7 @@ library(sensitivity)
 # design matrix (now also a data.frame) to array
 set.seed(0815)
 N = $(N)
+δ_cp = $(δ_cp)
 dfr <- $(select(df_cfopt, :par, :cp_sens_lower, :cp_sens_upper))
 get_sample <- function(){
   setNames(data.frame(sapply(1:nrow(dfr), function(i){
@@ -357,14 +273,15 @@ get_sample <- function(){
 sensObject <- soboltouati(NULL,get_sample(), get_sample(), nboot=100) # will be used down
 # sobolowen returned fluctuating results on repeated sample matrices
 #sensObject <- sobolowen(NULL,get_sample(), get_sample(), get_sample(), nboot=100) 
-saveRDS(sensObject, paste0("sensObject_",N,".rds"))
+saveRDS(sensObject, paste0("sensObject_",N,"_",δ_cp*100,".rds"))
 str(sensObject$X)
 data.matrix(sensObject$X)
 """);
 
 R"""
+δ_cp = $(δ_cp)
 library(sensitivity)
-sensObject = readRDS(paste0("sensObject_",N,".rds"))
+sensObject = readRDS(paste0("sensObject_",N,"_",δ_cp*100,".rds"))
 str(sensObject$X)
 """
 cp_design
@@ -401,25 +318,26 @@ for i_samp in 1:nsamp
     mod(i_samp,10_000) == 0 && print("$i_samp, ")
 end
 df_som_changes = DataFrame(transpose(som_changes), collect(keys(som_change0)))
-fname = "df_som_changes_$N.feather"
+fname = "df_som_changes_$(N)_$(Integer(δ_cp*100)).feather"
 Feather.write(fname, df_som_changes)
 
 describe(df_som_changes.csomD)
 minimum(df_som_changes.csomD)
 
 #-------- tell the results to sensitivity in R 
-using RCall, Feather, Pipe, DataFrames
+using RCall, Feather, DataFrames
 df_som_changes = Feather.read(fname)
 transform!(df_som_changes, [:csom0, :csomD] => ByRow((csom0,csomD) -> csomD/csom0) => :csomDrel)
 names(df_som_changes)
 target = :csomD  # sensitivity to what
 target = :csom0  # sensitivity to what
-target = :csomDrel  # sensitivity to what
+#target = :csomDrel  # sensitivity to what
 y = df_som_changes[!,target]
 R"""
 N = $(N)
 library(sensitivity)
-sensObject = readRDS(paste0("sensObject_",N,".rds"))
+sensObject = readRDS(paste0("sensObject_",N,"_",δ_cp*100,".rds"))
+#sensObject = readRDS(paste0("sensObject_",N,".rds"))
 tell(sensObject, $(df_som_changes[!,target]))
 """
 
@@ -429,13 +347,6 @@ l <- list(sensObject$S, sensObject$T)
 lapply(l, function(o){
     colnames(o) <- gsub(" ","", colnames(o)); o
 })
-""")
-
-tmp = rcopy(R"""
-#rownames(sensObject$T)
-#str(sensObject$X)
-df <- mutate(sensObject$T, par_R = rownames(sensObject$T))
-df
 """)
 
 # rcopy(R"head(sensObject$y)")
@@ -471,7 +382,9 @@ df_ST[!,:target] .= target
 # store the effects for this target
 # feather does not support Symbols nor missings
 using JLD2
-fnameEffects = "df_ST_$(target)_$N.jld2"
+
+fnameEffects = "df_ST_$(target)_$(N)_$(Integer(δ_cp*100)).jld2"
+#fnameEffects = "df_ST_$(target)_$N.jld2"
 jldsave(fnameEffects; df_ST)
 
 #tmp = load_object(fnameEffects)
@@ -502,7 +415,9 @@ recode!(df_STs.target, "csom0" => "SOM", "csomD" => "ΔSOM", "csomDrel" => "ΔSO
 R"""
 # https://stackoverflow.com/questions/12768176/unicode-characters-in-ggplot2-pdf-output
 cm2inch=1/2.54
-cairo_pdf(paste0("inst/22paper_upscaling/saltsens_",$(string(target)),".pdf"), width=8.3*cm2inch, height=7*cm2inch, family="DejaVu Sans")
+fname=paste0("inst/22paper_upscaling/saltsens_",$(string(target)),"_",$(Integer(δ_cp*100)),".pdf")
+#cairo_pdf(paste0("inst/22paper_upscaling/saltsens_",$(string(target)),".pdf"), width=8.3*cm2inch, 
+cairo_pdf(fname, width=8.3*cm2inch, height=7*cm2inch, family="DejaVu Sans")
 #png(paste0("tmp.png"))
 p1 = $(df_STs) %>%  
  #filter(order == "First Order") %>%  
@@ -528,11 +443,13 @@ dev.off()
 #df_ST = map([:csom0, :csomD, :csomDrel]) do target
 #do not plot the csomDrel - its not very different from csomD
 df_ST = map([:csom0, :csomD]) do target
-    fnameEffects = "df_ST_$(target)_$N.jld2"
+    fnameEffects = "df_ST_$(target)_$(N)_$(Integer(δ_cp*100)).jld2"
+    #fnameEffects = "df_ST_$(target)_$N.jld2"
     df_STt = load_object(fnameEffects)
 end
 df_ST = vcat(df_ST...)
 target = :combined
+# invoke ggplot  above
 
 # order parameters by total effects of target csomD
 using Chain
@@ -601,7 +518,7 @@ end
 i_inspect_high_csom0 = () -> begin
     # what parameters yield the high initial stocks with low CN_B?
     using LinearAlgebra
-    popt1 = get_paropt(ps, update_statepar(psx, (x[1],), prob_ndep); label=Val(true))
+    popt1 = get_paropt_labeled(ps, update_statepar(psx, (x[1],), prob_ndep))
     i_close = argmin(mapslices(pi -> norm(pi .- popt1), q_design; dims=2)[:,1])
     popt = q_design[i_close,:]
     df_tmp = DataFrame(transpose(hcat(popt0s, popt)), parsymbol.(names_opt))
@@ -621,7 +538,7 @@ i_inspect_high_csom0 = () -> begin
 
     ps_β_NB = ProblemParSetter(sp, (s.β_NB,))
     probp2 = update_statepar(ps_β_NB, (9.94,), prob0)
-    popt2 = get_paropt(ps, probp2, label=Val(true))
+    popt2 = get_paropt_labeled(ps, probp2)
     label_par(ps,probp2.p)
     solp2 = solve(probp2)
     som_change(solp2)
