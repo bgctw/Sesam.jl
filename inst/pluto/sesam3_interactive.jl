@@ -30,6 +30,9 @@ end
 # ╔═╡ 62c030b1-673c-4391-bf97-62d3b4bfde87
 Pkg.develop("MTKHelpers")
 
+# ╔═╡ 2c1e57e8-2069-4268-ab11-9b514054c9f6
+using Suppressor
+
 # ╔═╡ 01be1fe6-39f5-4ecb-9d9e-3c5bcf39c936
 using ModelingToolkit, DifferentialEquations, DataFrames, Tables,Distributions,Chain
 
@@ -75,6 +78,15 @@ function Base.show(io, mime::MIME"text/html", tc::TwoColumn)
 		</div>
 	""")
 end
+
+# ╔═╡ 6e60edbd-82eb-4283-91ec-8fcb33a64ff7
+md"## Testing local image"
+
+# ╔═╡ a9ff79e4-f0dd-4c23-8755-379ab84475bf
+pwd()
+
+# ╔═╡ a392d095-19f6-495f-8c59-a93eace2b9a6
+@suppress LocalResource("fig/logo.png", :width => 200)
 
 # ╔═╡ 6382a73e-5102-11eb-1cfb-f192df63435a
 md"""
@@ -296,9 +308,6 @@ plot(sol0t, tspan = (tstart, tend), vars=[s.I_N]); vline!([0], linestyle=:dash, 
 # ╔═╡ 1b5413de-3d32-4086-b80c-11c10ee87dac
 plot(sol0t, tspan = (tstart, tend), vars=[s.Φ_NB,s.Φ_N-s.i_L/s.β_Ni]); hline!([0], linestyle=:dash, color=:lightgray,label=nothing); vline!([0], linestyle=:dash, color = :lightgray, label=nothing)
 
-# ╔═╡ c496d149-1bc1-4c66-bda1-749c58e612c2
-keys(p)
-
 # ╔═╡ 255018b9-28c0-442c-8fa9-9698e7d7b513
 md"## Thanks"
 
@@ -308,6 +317,10 @@ md"## Thanks"
 # ╟─032c42f2-5103-11eb-0dce-e7ec59924648
 # ╟─0bb068de-512d-11eb-14e3-8f3de757910d
 # ╟─827fbc3a-512d-11eb-209e-cd74ddc17bae
+# ╠═6e60edbd-82eb-4283-91ec-8fcb33a64ff7
+# ╠═a9ff79e4-f0dd-4c23-8755-379ab84475bf
+# ╠═2c1e57e8-2069-4268-ab11-9b514054c9f6
+# ╠═a392d095-19f6-495f-8c59-a93eace2b9a6
 # ╟─6382a73e-5102-11eb-1cfb-f192df63435a
 # ╟─26a15193-a85f-443c-b007-2d14915e69f7
 # ╠═01be1fe6-39f5-4ecb-9d9e-3c5bcf39c936
@@ -343,5 +356,4 @@ md"## Thanks"
 # ╠═773273a8-70fc-4897-8174-8b06aff47013
 # ╠═0cbe8944-5ebd-4804-863d-e567c703b89f
 # ╠═1b5413de-3d32-4086-b80c-11c10ee87dac
-# ╠═c496d149-1bc1-4c66-bda1-749c58e612c2
 # ╟─255018b9-28c0-442c-8fa9-9698e7d7b513
