@@ -4,8 +4,21 @@ using Test
 using DistributionFits
 using MTKHelpers
 
+
 @testset "sesam3" begin
     include("test_sesam3.jl")        
+end;
+
+@testset "sesam3_revMM" begin
+    include("test_sesam3 _revMM.jl")        
+end;
+
+@testset "seam3" begin
+    include("test_seam3.jl")        
+end;
+
+@testset "sesam3_protect" begin
+    include("test_sesam3_protect.jl")        
 end;
 
 @testset "plant_face" begin
@@ -18,10 +31,6 @@ end;
 
 @testset "util" begin
     include("test_util.jl")        
-end;
-
-@testset "seam3" begin
-    include("test_seam3.jl")        
 end;
 
 

@@ -8,7 +8,7 @@ using Chain
 using MTKHelpers
 
 # name both systems s, so that can use same keys in parameters
-ss = sesam3(;name=:s)
+ss = sesam3_revMM(;name=:s)
 s = se = seam3(;name=:s)
 t1 = 0; t2 = 100
 @named pl = plant_face_fluct(;t1,t2)
@@ -73,9 +73,9 @@ get_litter_input_fake_system = () -> begin
     # plf_ann = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl_ann);
 
     pl_ann = plf_ann = plant_face(;name=:pl, t1, t2)
-    plf, plf_ann     
+    plf, plf_ann, sol_pl     
 end
-plf, plf_ann = get_litter_input_fake_system()
+plf, plf_ann, sol_pl = get_litter_input_fake_system()
 
 i_inspect_integrated_litter_input = () -> begin
     # compose a system that integrates pl.i_L
@@ -284,7 +284,8 @@ end
 
 cm2inch(x) = x/2.54
 cm2inch.((8.3,7))
-figpath = "inst/22paper_upscaling"
+figpath = "tmp"
+#figpath = "inst/22paper_upscaling" # interactivly set to override paper figures
 
 i_plot_Plots = () -> begin
     #depr: now using Makie instead of Plots
@@ -387,6 +388,25 @@ save(joinpath(figpath,"fluct_litterinput.pdf"), fig, pt_per_unit = 1)
 fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
 plotm_vars!(ax, [s.leach_N], (-5,5); variants = variants[[1,3,4],:], legend_position=:lt)
 save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
+
+fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="normalized value");
+ts = (-2.3, -1.3)
+cols = Makie.current_default_theme().palette.color[];
+max_i_Lagr = maximum(sol_pl[pl.i_Lagr][sol_pl.t .< 0])
+series_sol!(ax, sol_pl, [pl.i_Lagr/max_i_Lagr], tspan=ts, labels=["i_Lagr"], linewidth=0.8, solid_color=cols[4])
+max_i_L = maximum(sol_sesam3f[pl.i_L][sol_sesam3f.t .< 0])
+# series_sol!(ax, sol_sesam3f, [pl.i_L/max_i_L], tspan=ts, labels=["normalized soil litter input"], linewidth=0.8, solid_color=cols[2])
+max_L = maximum(sol_sesam3f[s.L][sol_sesam3f.t .< 0])
+max_E_L = maximum(sol_sesam3f[s.E_L][sol_sesam3f.t .< 0])
+min_alpha, max_alpha = extrema(sol_sesam3f[s.α_L][ts[1] .<= sol_sesam3f.t .<= ts[2]])
+r_alpha = max_alpha - min_alpha
+#
+series_sol!(ax, sol_sesam3f, [pl.i_L/max_i_L, s.L/max_L, (s.α_L - min_alpha+ r_alpha/2)/r_alpha/2, s.E_L/max_E_L], tspan=ts, labels=["i_L","L","α_L","E_L"], linewidth=0.8)
+axislegend(ax, unique=true, valign = :bottom, halign=:right, margin=(2,2,2,2))
+#CairoMakie.ylims!(ax, 0, 1.7) # separate
+display(fig)
+save(joinpath(figpath,"fluct_litter_delay_composition.pdf"), fig, pt_per_unit = 1)
+
 
 
 i_plot = () -> begin

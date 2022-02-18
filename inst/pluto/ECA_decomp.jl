@@ -19,93 +19,58 @@ using PlutoUI, Plots
 
 # ╔═╡ 6382a73e-5102-11eb-1cfb-f192df63435a
 md"""
-# Sesam3 with residue pool in Langmuir sorption equilibrium
+# ECA kinetics leads to classic MM kinetics for Sesam substrate pools
 **Thomas Wutzler 2022**
-"""
-
-# ╔═╡ 26a15193-a85f-443c-b007-2d14915e69f7
-md"## Residue pool partially sorbed"
-
-# ╔═╡ a392d095-19f6-495f-8c59-a93eace2b9a6
-LocalResource("./fig/R_langmuir.png", :width => 200)
-
-# ╔═╡ 9f88ad48-6ca1-41ab-8b56-7951f30edd3d
-md"""
-Assume a [Langmuir sorption isotherm](https://en.wikipedia.org/wiki/Langmuir_adsorption_model) 
-with accessible, $R_A$, and procted portion, $R_B$, are in equilibrium. 
-
-Enzymes only attack the accessible portion. We seek an expression of $R_A$ as a function of the total residue pool and sorption parameters.
 """
 
 # ╔═╡ 5526b178-148e-4d28-9cc5-7b04768ea2f0
 md"""
+The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) desribes limitation of rates for multiple competing consumers for multiple substrates.
+
+For a single substrate depolymerized, $S$,  by an enzyme $E_S$,  and also in sorption 
+equilibrium with the free mineral capacity $M$, the ECA formulation for decomposition $d_S$ of $S$ by enzyme $E_S$ is as follows.
 ```math
 \begin{aligned}
-\text{adsorption} &= k_{ads} R_A (Q_{max} - R_P) \\
-\text{desorption} &= k_{des} R_P \\
-K_{eqR} &= \frac{k_{ads}}{k_{des}} \\
+d_S &= v_{max} \frac{S \, E_S}{k_{S E_S} \left( 1 + \frac{S}{k_{S E_S}} + \frac{E_S}{k_{S E_S}} + \frac{M}{k_{SM}} \right)} \\
+&= v_{max} \frac{S \, E_S}{ k_{S E_S} + S + E_S + \frac{k_{S E_S}}{k_{SM}} M }  \\
 \end{aligned}
 ```
-where $K_{eqR}$ is the reaction equilibrium constant, and $Q_{max}$ is the sorption capacity.
+where the coefficients $k_{SC}$ describe the affinity of substrate, $S$ to consumer $C \in \{E_S, M\}$.
 """
 
 # ╔═╡ 35a1c86b-1993-48b7-a1ac-3b1399bfb900
 md"""
-In equilibrium: adsorption = desorption, and $R = R_A + R_P$
+With enzyme levels much lower than substrate levels ($E_S \ll S$) and hence also $E_S \ll k_{S E_S}$, we approximate $k_{S E_S} + E_S \approx k_{S E_S}$ and get:
 ```math
 \begin{aligned}
-k_{ads} R_A (Q_{max} - R_P) &= k_{des} R_P \\
-K_{eqR} k_{des} R_A (Q_{max} - R_P) &= k_{des} R_P \\
-K_{eqR} R_A (Q_{max} - R + R_A) &= R - R_A \\
+d_S &= v_{max} E_S \frac{S}{ \left( k_{S E_S} + \frac{k_{S E_S}}{k_{SM}} M \right) + S }  \\
 \end{aligned}
 ```
 """
 
 # ╔═╡ e26f48ec-b764-4c25-a769-58b60ac225b8
 md"""
- $R_A$ is the positive solution of a quadratic equation.
+This is classic Michaelis Menten (MM) kinetics with affinity $k_{mS}$:
 ```math
 \begin{aligned}
-K_{eqR} R_A^2 + R_A [K_{eqR}(Q_{max} - R) +1 ] - R &= 0  \\
-R_A^2 + R_A \left(Q_{max} - R + \frac{1}{K_{eqR}}\right) - \frac{R}{K_{eqR}} &= 0  \\
+k_{mS} &= k_{S E_S} \left( 1 + \frac{M}{k_{SM}} \right) \\
+&= \frac{k_{S E_S}}{k_{SM}} \left( k_{SM} + M \right) \\
 \end{aligned}
 ```
+ $M$ is not expected to change during simulation. Hence, if temperatue sensitivity of the different $k_{S.}$ terms is similar, they can be replaced by a single parameter.  
+ However, for deriving parameter that work across sites of different $M$, may keep them. Moreover, the $k_{SM}$ parameter can be reused in decomposition of different substrates.
 """
 
 # ╔═╡ 55837e0a-9485-489c-8498-a2567233acd1
 md"""
-If $R_A \ll R$ (usually true in subsoil) we can simplify:
+In subsoil we usually have much free sorption capacity $M = Q_{max} - \sum_i S_{iP} \gg k_SM$.
 ```math
 \begin{aligned}
-K_{eqR} R_A (Q_{max} - R) &\approx R \\
-R_A  &\approx \frac{R}{(Q_{max} - R)} \frac{1}{K_{eqR}}
+k_{mS} &= k_{S E_S} \frac{M}{k_{SM}} \\
 \end{aligned}
 ```
-"""
-
-# ╔═╡ 84ab0c26-0615-400f-b6a3-d51ccbda80b1
-md"""
-Hence at $R \ll Q_{max}$:
-```math
-\begin{aligned}
-R_A  &\approx \frac{R}{Q_{max} K_{eqR}} \\
-\frac{R_A}{R}  &\approx \frac{1}{Q_{max} K_{eqR}} \\
-k_{R app} = k_R \frac{R_A}{R} &= \frac{k_R}{Q_{max} K_{eqR}} \\
-\end{aligned}
-```
-and the apparent decomposition rate of the total residue pool is fraction of the 
-true decomposition rate.
-"""
-
-# ╔═╡ 07528307-41f8-4bda-a905-2ffac1bbadca
-md"""
-And maybe correct the solution with a few fixpoint iterations
-```math
-\begin{aligned}
-K_{eqR} R_A (Q_{max} - (R-R_A)) &= (R - R_A) \\
-R_A  &= \frac{R-R_A}{(Q_{max} - (R-R_A))} \frac{1}{K_{eqR}}
-\end{aligned}
-```
+ $k_{S E_S}$ is of magnitude of nonprotected $S$, and $k_{SM}$ is of magnitude of $M$ and therefore also $k_{mS}$ is of the mangitude of $S$. 
+Hence, decomposition decreases slighly sublinear with increasing $M$, 
 """
 
 # ╔═╡ 6f786282-def1-49fc-86f8-198b8fe235c5
@@ -116,7 +81,7 @@ restore_defaults_button = @bind restore_defaults_event Button("Restore defaults"
 
 # ╔═╡ 78c6e7ce-de1a-466a-89f3-f7700d754594
 begin
-	get_defaults = () -> Dict(:Q_max => 10_000, :K_eqR => 1e-3)
+	get_defaults = () -> Dict(:S => 3000., :M => 4_000., :k_SE => 200., :k_SM => 25., :E => 1., :v_max => 5*200.)
 	defaults = get_defaults()
 	let
 		restore_defaults_event
@@ -127,45 +92,61 @@ end;
 
 # ╔═╡ 6a14f418-dc70-45db-90f6-6ade6fe7ba98
 begin
-	Q_max_input = @bind Q_max Slider(5001:100:20_000,default=defaults[:Q_max], show_value=true)
-	K_eqR_input = @bind K_eqR_log Slider(-5:1,default=log10(defaults[:K_eqR]),show_value=true)
+	S_input = @bind S Slider(0:4000,default=defaults[:S], show_value=true)
+	M_input = @bind M Slider(2000:10_000,default=defaults[:M], show_value=true)
+	k_SE_input = @bind k_SE Slider(50:500,default=defaults[:k_SE],show_value=true)
+	k_SM_input = @bind k_SM Slider(5:100,default=defaults[:k_SM],show_value=true)
+	E_input = @bind E Slider(1:400,default=defaults[:E],show_value=true)
+	v_max_input = @bind v_max Slider(1:10 .* defaults[:k_SE],default=defaults[:v_max],show_value=true)
 	md"""
-	 `Q_max`: $(Q_max_input), `K_eqR`: $K_eqR_input, $restore_defaults_button
+	 `M`: $(M_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
 	"""
 end
 
 # ╔═╡ b01a1343-c3d4-48bc-a6ad-047d1e3e89b6
-begin
-	R = 500:5000
-	Raa = R./(Q_max .- R)./exp(K_eqR_log)
-	phalv = (Q_max .- R .+ 1/(exp(K_eqR_log)))/2
-	q = -R/exp(K_eqR_log)
-	Raar = -phalv .+ sqrt.(phalv .* phalv .- q)
-	#
-	k_R = 5. # Ra turns over 5 times a year
-	k_R_app = k_R .* Raar ./ R
-end;
+let
+	S = 50:4000
+	k_mS = k_SE .* (1 .+ M ./ k_SM)
+	dSapp = v_max .* E .* S ./ (k_mS .+ S)
+	dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
+	k_mS
+	plot_ks = plot(S, dSapp./S; xlab="S", ylab = "k_S = dS/S", label="small E approximation")
+	plot!(plot_ks, S, dS./S, label="ECA", legend = :topright)
+	plot_ds = plot(S, dSapp; xlab="S", ylab = "dS", label="small E approximation")
+	plot!(plot_ds, S, dS, label="ECA", legend = :bottomright)
+	plot_ks, plot_ds
+	md"""
+	$plot_ks $plot_ds
+	"""
+end
 
-# ╔═╡ 9bc45335-e984-444b-9155-958211c29a1b
-plot(R, Raa; xlab="R", ylab = "R_a", label="R_a approximation"); plot!(R, Raar, label="R_a root", legend = :topleft)
+# ╔═╡ 8c884045-aa8b-465c-9f8e-2d541b0441e2
+	md"""
+	 `S`: $(S_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
+	"""
 
-# ╔═╡ ecdf3d90-c555-4d66-b446-d54e6ba4c731
-plot(R, Raa ./ R; xlab="R", ylab = "R_a/R", label="R_a approximation"); plot!(R, Raar ./ R, label="R_a root", legend = :topleft)
+# ╔═╡ 24f4d97b-3d2c-495e-a630-31e4b09f4972
+let
+	M = 2_000:6_000
+	k_mS = k_SE .* (1 .+ M ./ k_SM)
+	dSapp = v_max .* E .* S ./ (k_mS .+ S)
+	dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
+	k_mS
+	plot_ks = plot(M, dSapp./S; xlab="M", ylab = "k_S = dS/S", label="small E approximation")
+	plot!(plot_ks, M, dS./S, label="ECA", legend = :topright)
+	plot_ds = plot(M, dSapp; xlab="M", ylab = "dS", label="small E approximation")
+	plot!(plot_ds, M, dS, label="ECA", legend = :bottomright)
+	plot_ks, plot_ds
+	md"""
+	$plot_ks 
+	"""
+end
 
-# ╔═╡ bdce3544-6b92-4978-b0c3-fef5b114a28e
-plot(R, 1 ./ k_R_app; xlab="R", ylab = "1/k_R_app (yr)", label=nothing)
-
-# ╔═╡ 5c428f0e-9fa5-4a96-879d-f05789da402b
-md"nearly linear decrease with R, despite nonlinearity when R approaches Q_max"
-
-# ╔═╡ b5f2c022-cee5-43de-9194-bfeac029fb84
-plot(R, k_R_app; xlab="R", ylab = "k_R_app (1/yr)", label=nothing)
+# ╔═╡ d9c6b6c8-da4d-442b-9e9c-2dee4a10be9a
+md"Shape across M is not changing much."
 
 # ╔═╡ 255018b9-28c0-442c-8fa9-9698e7d7b513
 md"## Thanks"
-
-# ╔═╡ f9f768e3-3b0d-46f3-adc4-57b9c1f3c097
-md"Bernhard for discussion"
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1082,26 +1063,18 @@ version = "0.9.1+5"
 # ╔═╡ Cell order:
 # ╟─d138a0f5-22e5-4e95-ae2f-141bb48fbb83
 # ╟─6382a73e-5102-11eb-1cfb-f192df63435a
-# ╟─26a15193-a85f-443c-b007-2d14915e69f7
-# ╠═a392d095-19f6-495f-8c59-a93eace2b9a6
-# ╟─9f88ad48-6ca1-41ab-8b56-7951f30edd3d
 # ╟─5526b178-148e-4d28-9cc5-7b04768ea2f0
 # ╟─35a1c86b-1993-48b7-a1ac-3b1399bfb900
-# ╟─e26f48ec-b764-4c25-a769-58b60ac225b8
+# ╠═e26f48ec-b764-4c25-a769-58b60ac225b8
 # ╟─55837e0a-9485-489c-8498-a2567233acd1
-# ╟─84ab0c26-0615-400f-b6a3-d51ccbda80b1
-# ╟─07528307-41f8-4bda-a905-2ffac1bbadca
 # ╟─6f786282-def1-49fc-86f8-198b8fe235c5
-# ╟─78c6e7ce-de1a-466a-89f3-f7700d754594
-# ╟─6fb27ab2-e633-4099-b3ff-adff984f359b
+# ╠═78c6e7ce-de1a-466a-89f3-f7700d754594
+# ╠═6fb27ab2-e633-4099-b3ff-adff984f359b
 # ╟─6a14f418-dc70-45db-90f6-6ade6fe7ba98
 # ╟─b01a1343-c3d4-48bc-a6ad-047d1e3e89b6
-# ╠═9bc45335-e984-444b-9155-958211c29a1b
-# ╠═ecdf3d90-c555-4d66-b446-d54e6ba4c731
-# ╠═bdce3544-6b92-4978-b0c3-fef5b114a28e
-# ╠═5c428f0e-9fa5-4a96-879d-f05789da402b
-# ╠═b5f2c022-cee5-43de-9194-bfeac029fb84
+# ╟─8c884045-aa8b-465c-9f8e-2d541b0441e2
+# ╟─24f4d97b-3d2c-495e-a630-31e4b09f4972
+# ╟─d9c6b6c8-da4d-442b-9e9c-2dee4a10be9a
 # ╟─255018b9-28c0-442c-8fa9-9698e7d7b513
-# ╟─f9f768e3-3b0d-46f3-adc4-57b9c1f3c097
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002

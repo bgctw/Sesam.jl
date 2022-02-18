@@ -1,4 +1,4 @@
-function sesam3C(;name, k_N=60.0)
+function sesam3C_revMM(;name, k_N=60.0)
     # @parameters t [unit = uT]
     # D = Differential(t)
 
@@ -90,7 +90,7 @@ function sesam3C(;name, k_N=60.0)
     ODESystem(eqs; name)    
 end
 
-function sesam3N(;name, sC = sesam3C(name=:sC))
+function sesam3N_revMM(;name, sC = sesam3C_revMM(name=:sC))
     @parameters t 
     D = Differential(t)
 
@@ -131,38 +131,7 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
     extend(ODESystem(eqs, t, sts, ps; name), sC)
 end
 
-function get_revenue_eq_sesam3CN(sN)
-    @parameters t 
-    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sN
-    sts = @variables (begin
-        α_LT(t), α_RT(t),
-        invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
-        #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
-        revenue_sum(t)
-    end)
-    # need to be defined in coupled component:
-    @variables w_C(t), w_N(t)
-    eqs = [
-        invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
-        invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
-        return_L ~ dec_L * (w_C + w_N/β_NL), 
-        return_R ~ dec_R * (w_C + w_N/β_NR), 
-        revenue_L ~ return_L / invest_L,
-        revenue_R ~ return_R / invest_R,
-        revenue_sum ~ revenue_L + revenue_R,
-        α_LT ~ revenue_L/revenue_sum,
-        α_RT ~ revenue_R/revenue_sum,
-        # auxilary for plotting
-        # invest_Ln ~ invest_L/(invest_L + invest_R),
-        # invest_Rn ~ invest_R/(invest_L + invest_R),
-        # return_Ln ~ return_L/(return_L + return_R),
-        # return_Rn ~ return_R/(return_L + return_R),
-        ]
-    (;eqs, sts)
-end
-
-
-function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(name=:sN))
+function sesam3CN_revMM(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N_revMM(name=:sN))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sN
@@ -194,16 +163,31 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
 end
 
-sesam3(args...;kwargs...) = sesam3CN(args...;kwargs...)
+sesam3_revMM(args...;kwargs...) = sesam3CN_revMM(args...;kwargs...)
 
-"""
-R pool is a mixture of microbial turnover and enzymes.
-Here the stable C/N ratio is computed based on given parameterization.
-"""
-function calculate_β_NR_sesam3(p,s)
-    w_REnz = p[s.a_E]*(1-p[s.κ_E]) # a_E (1-κ_E) B
-    w_RB = p[s.ϵ_tvr]*p[s.τ]       # τ ϵ_tvr B
-    β_NR = 1/((w_REnz/p[s.β_NEnz] + w_RB/p[s.β_NB])/(w_REnz + w_RB))
+
+function get_revenue_eq_seam(sN)
+    # needs dec_RPot, which is specific to revMM decomposition formulation
+    @parameters t 
+    @unpack dec_LPot, dec_RPot, k_mN, syn_Enz, α_L, α_R, β_NL, β_NR = sN
+    sts = @variables (begin
+        α_LT(t), α_RT(t),
+        rev_LC(t), rev_RC(t), rev_LN(t), rev_RN(t), 
+        α_RC(t), α_RN(t) 
+    end)
+    # need to be defined in coupled component:
+    @variables w_C(t), w_N(t)
+    eqs = [
+        rev_LC ~ dec_LPot/(k_mN + α_L*syn_Enz),
+        rev_RC ~ dec_RPot/(k_mN + α_R*syn_Enz),
+        rev_LN ~ rev_LC/β_NL,
+        rev_RN ~ rev_RC/β_NR,
+        α_RC ~ rev_RC/(rev_RC + rev_LC),
+        α_RN ~ rev_RN/(rev_RN + rev_LN),
+        α_RT ~ (w_C * α_RC + w_N * α_RN)/(w_C + w_N),
+        α_LT ~ 1.0 - α_RT,
+    ]
+    (;eqs, sts)
 end
 
 

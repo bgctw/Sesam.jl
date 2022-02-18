@@ -54,8 +54,8 @@ function seam3C(;name)
     ODESystem(eqs; name)    
 end
 
-# nitrogen dynamics as in sesam3N
-seam3N(;name) = sesam3N(;name, sC = seam3C(name=:sC))
+# nitrogen dynamics as in sesam3N_revMM
+seam3N(;name) = sesam3N_revMM(;name, sC = seam3C(name=:sC))
 
 function seam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false)
     @parameters t 

@@ -32,7 +32,7 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
         i_L ~ (1-share_autumn) * i_L_annual + dec_Lagr,
         # i_L_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*i_L0, i_L0), 
         # β_Ni_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*β_Ni0, β_Ni0),
-        inc_period ~ smoothstep(t, t1, smooth_dt) * (1-smoothstep(t, t2, smooth_dt)),
+        inc_period ~ smoothstep_sesam(t, t1, smooth_dt) * (1-smoothstep_sesam(t, t2, smooth_dt)),
         i_L_annual ~ i_L0 * (1 + (fac_inc-1)*inc_period), 
         β_Ni_annual ~ β_Ni0 * (1 + (fac_inc-1)*inc_period),
         i_L_anomaly ~ get_iL_anomaly(t, d_lit_agr),
@@ -55,7 +55,9 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
     ODESystem(eqs,t; name, defaults, continuous_events)    
 end
 
-@register_symbolic smoothstep(t, t_step::Number, dt::Number)
+# now defined in MTKHelpers - not found in generated function
+smoothstep_sesam(args...) = smoothstep(args...)
+@register_symbolic smoothstep_sesam(t, t_step::Number, dt::Number)
 
 
 get_iL_anomaly(t, dist) = pdf(dist, t - floor(t)) 
@@ -65,7 +67,7 @@ get_iL_anomaly(t, dist) = pdf(dist, t - floor(t))
 function f_interpolate9(t, sol, numref)
 	sol(t,idxs=numref.x)
 end
-@register f_interpolate9(t, sol::ODESolution, numref::Base.RefValue{Num})
+@register_symbolic f_interpolate9(t, sol::ODESolution, numref::Base.RefValue{Num})
 
 
 function plant_face_fluct_fake(;name, sys, sol, t1, t2)

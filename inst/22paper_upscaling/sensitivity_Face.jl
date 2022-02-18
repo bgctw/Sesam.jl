@@ -10,7 +10,7 @@ using MTKHelpers
 
 tspinup = 500.0; tface=100.0
 #@named s = sesam3(use_seam_revenue=true)
-@named s = sesam3(use_seam_revenue=false)
+@named s = sesam3_revMM(use_seam_revenue=false)
 @named pl = plant_face(t1=0.0,t2=tface)
 @named sp = plant_sesam_system(s,pl)
 #equations(sp)
