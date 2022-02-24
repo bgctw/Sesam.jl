@@ -372,24 +372,24 @@ function plotm_vars!(ax, vars, tspan=tspan; variants = variants, legend_position
 end
 #save("tmp.pdf", fig, pt_per_unit = 1)
 
-include("cairo_makie_util.jl")
+# include("cairo_makie_util.jl") # moved to MTKHelpers
 
-fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="enzyme pool E_R (g/m2)");
+fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="enzyme pool E_R (g/m2)");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
 save(joinpath(figpath,"fluct_E_R.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
+fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
 ts = (-5.0,min(5.0,maximum(sol_seam3f.t)))
 series_sol!(ax, sol_seam3f, [pl.i_L, pl.i_L_annual], tspan=ts, labels=["seasonal","annual"], linewidth=0.8)
 axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
 display(fig)
 save(joinpath(figpath,"fluct_litterinput.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
+fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
 plotm_vars!(ax, [s.leach_N], (-5,5); variants = variants[[1,3,4],:], legend_position=:lt)
 save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="normalized value");
+fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="normalized value");
 ts = (-2.3, -1.3)
 cols = Makie.current_default_theme().palette.color[];
 max_i_Lagr = maximum(sol_pl[pl.i_Lagr][sol_pl.t .< 0])
@@ -410,31 +410,31 @@ save(joinpath(figpath,"fluct_litter_delay_composition.pdf"), fig, pt_per_unit = 
 
 
 i_plot = () -> begin
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="R (g/m2)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="R (g/m2)");
     plotm_vars!(ax, [s.R], (first(tspan),0); variants = variants[[1,2,3,4],:], legend_position=:lt)
     # solved: after 200 years still increasing?
     #    slightly higher annual integrated litter input -> avoid steep slopes + reltol in solver
 
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="R (g/m2)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="R (g/m2)");
     plotm_vars!(ax, [s.R], (-5,0); variants = variants[[1,2,3,4],:], legend_position=:lt)
 
 
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="I_N (g/m2)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="I_N (g/m2)");
     plotm_vars!(ax, [s.I_N], (-5,0); variants = variants[[1,2,3,4],:], legend_position=:lt)
     # consistently higher than with constant litter input
 
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="α_L (1/1)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="α_L (1/1)");
     plotm_vars!(ax, [s.α_L], (-1,0); variants = variants[[1,2,3],:], legend_position=:lb)
     # annual cycle: after winter shiftring towards R and in autum rapidly shifting towards L 
 
     # plant uptake matches maximum
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="plant uptake (g/m2/yr)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="plant uptake (g/m2/yr)");
     series_sol!(ax, sol_sesam3f, [s.u_PlantNmax, s.u_PlantN], tspan=(-2,2), linewidth=0.8)
     axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
     display(fig)
 
     # also the same N pool
-    fig, ax = pdf_figure2(xlabel = "Time (yr)", ylabel="CN of R pool (g/g)");
+    fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="CN of R pool (g/g)");
     plotm_vars!(ax, [s.R/s.R_N], (-1,0); variants = variants[[2,4],:], legend_position=:lb)
 
 
