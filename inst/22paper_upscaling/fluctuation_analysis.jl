@@ -376,7 +376,7 @@ float_to_month = x -> ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oc
 
 # include("cairo_makie_util.jl") # moved to MTKHelpers
 
-fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="enzyme pool E_R (g/m2)");
+fig, ax = pdf_figure(xlabel = "Time", ylabel="enzyme pool E_R (g/m2)");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
 ax.xticks = [-2.0, -1.5, -1, -0.5, 0.0]
 ax.xtickformat = xs -> [float_to_month(x) for x in xs]
@@ -394,7 +394,7 @@ fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
 plotm_vars!(ax, [s.leach_N], (-5,5); variants = variants[[1,3,4],:], legend_position=:lt)
 save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="normalized value");
+fig, ax = pdf_figure(xlabel = "Time", ylabel="normalized value");
 ts = (-2.3, -1.3)
 cols = Makie.current_default_theme().palette.color[];
 max_i_Lagr = maximum(sol_pl[pl.i_Lagr][sol_pl.t .< 0])
