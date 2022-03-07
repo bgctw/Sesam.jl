@@ -371,11 +371,16 @@ function plotm_vars!(ax, vars, tspan=tspan; variants = variants, legend_position
     fig
 end
 #save("tmp.pdf", fig, pt_per_unit = 1)
+float_to_month = x -> ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][Int32(round(mod(x,1)*12)+1)]
+
 
 # include("cairo_makie_util.jl") # moved to MTKHelpers
 
 fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="enzyme pool E_R (g/m2)");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
+ax.xticks = [-2.0, -1.5, -1, -0.5, 0.0]
+ax.xtickformat = xs -> [float_to_month(x) for x in xs]
+display(fig)
 save(joinpath(figpath,"fluct_E_R.pdf"), fig, pt_per_unit = 1)
 
 fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
@@ -404,6 +409,8 @@ r_alpha = max_alpha - min_alpha
 series_sol!(ax, sol_sesam3f, [pl.i_L/max_i_L, s.L/max_L, (s.α_L - min_alpha+ r_alpha/2)/r_alpha/2, s.E_L/max_E_L], tspan=ts, labels=["i_L","L","α_L","E_L"], linewidth=0.8)
 axislegend(ax, unique=true, valign = :bottom, halign=:right, margin=(2,2,2,2))
 #CairoMakie.ylims!(ax, 0, 1.7) # separate
+ax.xticks = collect(-26:2:-14) ./ 12
+ax.xtickformat = xs -> [float_to_month(x) for x in xs]
 display(fig)
 save(joinpath(figpath,"fluct_litter_delay_composition.pdf"), fig, pt_per_unit = 1)
 
