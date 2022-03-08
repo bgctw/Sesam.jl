@@ -194,7 +194,8 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
 end
 
-sesam3(args...;kwargs...) = sesam3CN(args...;kwargs...)
+# sesam3 now refers to sesam3CNP
+#sesam3(args...;kwargs...) = sesam3CN(args...;kwargs...)
 
 """
 R pool is a mixture of microbial turnover and enzymes.

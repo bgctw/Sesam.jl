@@ -1,5 +1,13 @@
-@named s = sesam3()
+@named s = sesam3CN()
 @named pl = plant_const()
+
+# @named s = Sesam.sesam3CNC()
+# sp = compose(ODESystem([
+#     s.i_L ~ pl.i_L,
+#     # colimitation
+#     s.syn_B ~ s.C_synBC,
+#   ], t; name=:sp), s, pl)
+#sp = structural_simplify(sp)
 
 @named sp = plant_sesam_system(s,pl)
 states(sp)
@@ -20,10 +28,7 @@ p = pC = Dict(
     #i_L => t -> 1 - exp(-t),  # litter input
     pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     pl.β_Ni0 => 25,
-    pl.i_IN0 => 0,   ##<< input of mineral N, 
-    pl.β_Pi0 => 25*20, ## leaf litter N:P ~20(massratio Kang10)
-    pl.i_IP0 => 0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
-    pl.s_EP0 => 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux
+    pl.i_IN0 => 0,   ##<< input of mineral N,
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 
@@ -32,39 +37,27 @@ pN = Dict(
     #s.l_N => 0.96,       #0.00262647*365     ##<< leaching rate of mineralN lN IN
     s.l_N => 0.0,       
     s.ν_N =>  0.9,     # microbial N use efficiency accounting for apparent 
+    ## minceralization of N during uptake in heterogeneous soils
+    # for N uptake: take the defaults which take as much N as supplied by litter
+    # pl.u_PlantNmax0 => Inf32, # only constrained by k_PlantN in min function
+    # pl.k_PlantN0 => 10.57, #0.0289652*365     ##<< plant uptake rate first order of IN
 )
-pP = Dict(
-    s.k_LP => pC[s.k_L], # TODO 1/x years, assume same rate as depolymerizing enzyme
-    s.k_RP => pC[s.k_R], # TODO
-    s.i_BP => pN[s.i_BN],       ##<< potential immobilization flux rate 
-    s.β_PEnz => 50.0,     # TODO Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
-    s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinary and energy compounds
-    s.l_P => 0.0,      # no leaching       
-    s.ν_P =>  0.3,     # microbial P use efficiency accounting for apparent mineralization
-)
-p = merge(pC, pN, pP)
+p = merge(pC, pN)
 
 u0 = u0C = Dict(
     s.B => 17,
     s.L => 100,
     s.R => 1100,
     #s.cumresp => 0.0,
-    s.α_R => 0.1, 
-    s.α_RP => 0.1, 
-    s.α_LP => 0.1, 
+    s.α_R => 0.1, # enzyme synthesis into L # TODO model by optimality
 )
-u0C[s.α_L] = 1.0 - u0C[s.α_R] - u0C[s.α_LP] - u0C[s.α_RP]
+u0C[s.α_L] = 1.0 - u0C[s.α_R]
 u0N = Dict(
     s.I_N => 0.04, ##<< inorganic pool gN/m2 
     s.L_N => u0[s.L]/p[pl.β_Ni0],
     s.R_N => u0[s.R]/calculate_β_NR_sesam3(p,s) #p[s.β_NB],
     )
-u0P = Dict(
-    s.I_P => 0.04, ##<< TODO inorganic pool gN/m2 
-    s.L_P => u0[s.L]/p[pl.β_Pi0],
-    s.R_P => u0[s.R]/calculate_β_PR_sesam3(p,s) #p[s.β_NB],
-    )
-u0 = merge(u0C, u0N, u0P)    
+u0 = merge(u0C, u0N)    
 #u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
 tspan = (0.0,100.0)    
@@ -73,16 +66,12 @@ tspan = (0.0,100.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3 = solve(prob);
+sol = sol_sesam3CN = solve(prob);
 
 i_plot = () -> begin
     #using Plots
     plot(sol)
     plot(sol, vars=[s.R])
-    plot(sol, vars=[s.calculate_β_PR_sesam3])
-    plot(sol, vars=[s.lim_C, s.lim_N, s.lim_P])
-    plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP])
-    plot(sol, vars=[p[s.a_E] * s.B])
 end
 
 @testset "non-negative pools" begin
@@ -130,26 +119,6 @@ end;
 
 @testset "balanced allocation sums to one" begin
     #plot(sol, vars=[s.α_LT,s.α_RT, s.α_LT+s.α_RT])
-    @test all(isapprox.(sol[s.α_LT + s.α_RT + s.α_LPT + s.α_RPT], 1.0, rtol = 1e-8))
-    @test all(isapprox.(sol[s.α_L + s.α_R + s.α_LP + s.α_RP], 1.0, rtol = 1e-8))
+    @test all(isapprox.(sol[s.α_LT + s.α_RT], 1.0, rtol = 1e-8))
+    @test all(isapprox.(sol[s.α_L + s.α_R], 1.0, rtol = 1e-8))
 end;
-
-@testset "microbial dP balance" begin
-    uptake = p[s.ν_P]*sol[s.u_POM]
-    usage = sol[s.syn_Enz]/p[s.β_PEnz] + sol[s.syn_B]/p[s.β_PB] + sol[s.Φ_PB]
-    #plot(sol.t, [uptake, usage])
-    @test all(isapprox.(uptake, usage, rtol = 1e-6))
-end;
-
-@testset "system dP balance" begin
-    change = sol[s.dB]/p[s.β_PB] + sol[s.dL_P + s.dR_P + s.dI_P]
-    output = sol[s.u_PlantP + s.leach_P] 
-    input = sol[s.i_L/s.β_Pi + s.i_IP]
-    #sol[s.leach_N]
-    #sol[s.i_IN]
-    bo = 1:10
-    bo = 1:length(input)
-    #plot(sol.t[bo], [input[bo], output[bo], change[bo], (change .+ output)[bo]], label = ["input" "output" "change" "change+output"])
-    @test all(isapprox.(input, change .+ output, rtol = 1e-6))
-end;
-

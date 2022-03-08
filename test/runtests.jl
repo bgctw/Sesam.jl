@@ -10,7 +10,11 @@ using MTKHelpers
 end;
 
 @testset "sesam3_revMM" begin
-    include("test_sesam3 _revMM.jl")        
+    include("test_sesam3_revMM.jl")        
+end;
+
+@testset "sesam3_CN" begin
+    include("test_sesam3CN.jl")        
 end;
 
 @testset "seam3" begin
