@@ -15,20 +15,26 @@ macro bind(def, element)
 end
 
 # ╔═╡ 0232943f-74f8-40ec-96a3-495d5942e897
-begin
-    import Pkg
-    # activate the shared project environment
-    Pkg.activate(Base.current_project())
-    # instantiate, i.e. make sure that all packages are downloaded
-    Pkg.instantiate()
-
-    using Plots, PlutoUI
-	import PlutoUI: combine
+if occursin("Sesam", Base.current_project())
+	import Pkg
+	# activate the shared project environment
+	Pkg.activate(Base.current_project())
+	# instantiate, i.e. make sure that all packages are downloaded
+	Pkg.instantiate()
 	using PlutoLinks: @revise
+	@revise using Sesam
+	Pkg.develop("MTKHelpers")
+	@revise using MTKHelpers
+else
+	using Sesam, MTKHelpers
 end
 
-# ╔═╡ 62c030b1-673c-4391-bf97-62d3b4bfde87
-Pkg.develop("MTKHelpers")
+# ╔═╡ d6f85fa6-97cc-40e9-841a-053563713993
+begin
+	using Plots, PlutoUI
+	import PlutoUI: combine
+	gr()
+end;
 
 # ╔═╡ 2c1e57e8-2069-4268-ab11-9b514054c9f6
 using Suppressor
@@ -39,44 +45,34 @@ using ModelingToolkit, DifferentialEquations, DataFrames, Tables,Distributions,C
 # ╔═╡ f1a94d8f-927e-40f3-9af6-667890a6e733
 using DistributionFits
 
-# ╔═╡ d2c60dda-52cd-4851-b08a-6084a1dd6951
-@revise using Sesam
-
-
-# ╔═╡ 48168292-5049-4f18-9031-e7a96c55e634
-@revise using MTKHelpers
-
-# ╔═╡ 99fb7628-502a-11eb-1d23-7d3a143cd5d3
-gr();
-
 # ╔═╡ 032c42f2-5103-11eb-0dce-e7ec59924648
 html"<button onclick='present()'>present</button>"
 
-# ╔═╡ 0bb068de-512d-11eb-14e3-8f3de757910d
-struct TwoColumn{A, B}
-	left::A
-	right::B
-end
-
 # ╔═╡ 827fbc3a-512d-11eb-209e-cd74ddc17bae
-function Base.show(io, mime::MIME"text/html", tc::TwoColumn)
-	write(io,
-		"""
-		<div style="display: flex;">
-			<div style="flex: 50%;">
-		""")
-	show(io, mime, tc.left)
-	write(io,
-		"""
+begin
+	struct TwoColumn{A, B}
+		left::A
+		right::B
+	end
+	function Base.show(io, mime::MIME"text/html", tc::TwoColumn)
+		write(io,
+			"""
+			<div style="display: flex;">
+				<div style="flex: 50%;">
+			""")
+		show(io, mime, tc.left)
+		write(io,
+			"""
+				</div>
+				<div style="flex: 50%;">
+			""")
+		show(io, mime, tc.right)
+		write(io,
+			"""
+				</div>
 			</div>
-			<div style="flex: 50%;">
 		""")
-	show(io, mime, tc.right)
-	write(io,
-		"""
-			</div>
-		</div>
-	""")
+	end
 end
 
 # ╔═╡ 6e60edbd-82eb-4283-91ec-8fcb33a64ff7
@@ -96,9 +92,6 @@ md"""
 
 # ╔═╡ 26a15193-a85f-443c-b007-2d14915e69f7
 md"## Setup prior parameter distributions"
-
-# ╔═╡ aa0cb189-37c4-4ba8-be10-0e51b05661de
-Pkg.status()
 
 # ╔═╡ 078f11d4-9630-4e5c-8048-ef0c0232294f
 md"Define the System components"
@@ -312,10 +305,9 @@ plot(sol0t, tspan = (tstart, tend), vars=[s.Φ_NB,s.Φ_N-s.i_L/s.β_Ni]); hline!
 md"## Thanks"
 
 # ╔═╡ Cell order:
-# ╠═0232943f-74f8-40ec-96a3-495d5942e897
-# ╟─99fb7628-502a-11eb-1d23-7d3a143cd5d3
+# ╟─0232943f-74f8-40ec-96a3-495d5942e897
+# ╟─d6f85fa6-97cc-40e9-841a-053563713993
 # ╟─032c42f2-5103-11eb-0dce-e7ec59924648
-# ╟─0bb068de-512d-11eb-14e3-8f3de757910d
 # ╟─827fbc3a-512d-11eb-209e-cd74ddc17bae
 # ╠═6e60edbd-82eb-4283-91ec-8fcb33a64ff7
 # ╠═a9ff79e4-f0dd-4c23-8755-379ab84475bf
@@ -325,10 +317,6 @@ md"## Thanks"
 # ╟─26a15193-a85f-443c-b007-2d14915e69f7
 # ╠═01be1fe6-39f5-4ecb-9d9e-3c5bcf39c936
 # ╠═f1a94d8f-927e-40f3-9af6-667890a6e733
-# ╠═62c030b1-673c-4391-bf97-62d3b4bfde87
-# ╠═d2c60dda-52cd-4851-b08a-6084a1dd6951
-# ╠═48168292-5049-4f18-9031-e7a96c55e634
-# ╠═aa0cb189-37c4-4ba8-be10-0e51b05661de
 # ╟─078f11d4-9630-4e5c-8048-ef0c0232294f
 # ╠═36b322a5-ef4a-4697-90a8-720d8c224219
 # ╟─351ebf17-102c-4497-aab0-1e0a3f55f799

@@ -15,7 +15,7 @@ macro bind(def, element)
 end
 
 # ╔═╡ d138a0f5-22e5-4e95-ae2f-141bb48fbb83
-using PlutoUI, Plots
+using PlutoUI, Plots, Logging
 
 # ╔═╡ 6382a73e-5102-11eb-1cfb-f192df63435a
 md"""
@@ -27,7 +27,9 @@ md"""
 md"## Residue pool partially sorbed"
 
 # ╔═╡ a392d095-19f6-495f-8c59-a93eace2b9a6
-LocalResource("./fig/R_langmuir.png", :width => 200)
+with_logger(NullLogger()) do
+	LocalResource("fig/R_langmuir.png", :width => 200)
+end
 
 # ╔═╡ 9f88ad48-6ca1-41ab-8b56-7951f30edd3d
 md"""
@@ -85,7 +87,8 @@ R_A  &\approx \frac{R}{(Q_{max} - R)} \frac{1}{K_{eqR}}
 
 # ╔═╡ 84ab0c26-0615-400f-b6a3-d51ccbda80b1
 md"""
-Hence at $R \ll Q_{max}$:
+### Reverse MM
+When combined with a decomposition that is first order in $R$, at $R \ll Q_{max}$:
 ```math
 \begin{aligned}
 R_A  &\approx \frac{R}{Q_{max} K_{eqR}} \\
@@ -104,6 +107,50 @@ And maybe correct the solution with a few fixpoint iterations
 \begin{aligned}
 K_{eqR} R_A (Q_{max} - (R-R_A)) &= (R - R_A) \\
 R_A  &= \frac{R-R_A}{(Q_{max} - (R-R_A))} \frac{1}{K_{eqR}}
+\end{aligned}
+```
+"""
+
+# ╔═╡ 24d84af8-0acd-41db-82ac-617c6ee516cf
+md"""
+### Michaelis Menten - ECA
+When combined with Classical Michaelis-Menten (MM) kinetics of substrate, the affinity is increased by considering only fraction accessible.
+```math
+\begin{aligned}
+d_R &= k_R \frac{R_A}{k_{mR0} + R_A} \\
+&\approx k_R \frac{\frac{R}{Q_{max} K_{eqR}}}{k_{mR0} + \frac{R}{Q_{max} K_{eqR}}} \\
+&\approx k_R \frac{R}{k_{mR0}  Q_{max} K_{eqR} + R} \\
+\end{aligned}
+```
+In the second line we again simplifid to subsoil conditions by assuming $R_A \ll R \ll Q_{max}$.
+"""
+
+# ╔═╡ 34b6c625-ceff-437a-8d9b-a368a427c42a
+md"""
+This is equivalent to ECA kinetics with enzyme levels much smaller than $R$:
+```math
+\begin{aligned}
+d_R &= k_R \frac{R}{ \left( k_{R E_R} + \frac{k_{R E_R}}{k_{RM}} M \right) + R }  \\
+\end{aligned}
+```
+with
+```math
+\begin{aligned}
+k_{mR} = k_{mR0} K_{eqR} Q_{max} &= k_{R E_R} + \frac{ k_{R E_R} }{ k_{RM} } M \\
+ &= k_{R E_R} \left( 1 + \frac{ M }{ k_{RM} } \right) \\
+  \end{aligned}
+```
+with approximation $\frac{ M }{ k_{RM}} \gg 1$ (true for mineral soils because of very high affinity to sorbed phase) we can roughly equate:
+```math
+\begin{aligned}
+k_{R E_R} \frac{M}{ k_{RM} } &= k_{mR0} K_{eqR} Q_{max}
+\end{aligned}
+```
+and
+```math
+\begin{aligned}
+k_{R E_R} &\approx k_{mR0} \\
+\frac{M}{ k_{RM} } &\approx K_{eqR} Q_{max} \\
 \end{aligned}
 ```
 """
@@ -167,9 +214,13 @@ md"## Thanks"
 # ╔═╡ f9f768e3-3b0d-46f3-adc4-57b9c1f3c097
 md"Bernhard for discussion"
 
+# ╔═╡ 5f0172f3-377a-4320-b4ea-a0fb7fe166d7
+occursin("Sesam", Base.current_project())
+
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 
@@ -1091,6 +1142,8 @@ version = "0.9.1+5"
 # ╟─55837e0a-9485-489c-8498-a2567233acd1
 # ╟─84ab0c26-0615-400f-b6a3-d51ccbda80b1
 # ╟─07528307-41f8-4bda-a905-2ffac1bbadca
+# ╟─24d84af8-0acd-41db-82ac-617c6ee516cf
+# ╟─34b6c625-ceff-437a-8d9b-a368a427c42a
 # ╟─6f786282-def1-49fc-86f8-198b8fe235c5
 # ╟─78c6e7ce-de1a-466a-89f3-f7700d754594
 # ╟─6fb27ab2-e633-4099-b3ff-adff984f359b
@@ -1103,5 +1156,6 @@ version = "0.9.1+5"
 # ╠═b5f2c022-cee5-43de-9194-bfeac029fb84
 # ╟─255018b9-28c0-442c-8fa9-9698e7d7b513
 # ╟─f9f768e3-3b0d-46f3-adc4-57b9c1f3c097
+# ╠═5f0172f3-377a-4320-b4ea-a0fb7fe166d7
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
