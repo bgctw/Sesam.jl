@@ -5,10 +5,11 @@ Superimpose a seasonal pattern on the litter input.
 function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2, 
 #    autumn_start=10/12, autumn_end = 11/12, 
     autumn_start=8.5/12, autumn_end = 11.5/12, 
-    share_autumn=0.5, k_Lagr=12/2, k_PlantN0v = 100)
+    share_autumn=0.5, k_Lagr=12/2, k_PlantN0v = 100, k_PlantP0v = 100)
     @parameters t 
     D = Differential(t)
-    @parameters i_L0  i_IN0  β_Ni0 t1=t1 t2=t2 fac_inc=fac_inc
+    @parameters i_L0  i_IN0  β_Ni0 i_IP0 β_Pi0 t1=t1 t2=t2 fac_inc=fac_inc
+    @parameters u_PlantPmax0  k_PlantP0=k_PlantP0v s_EP0
     @parameters u_PlantNmax0  k_PlantN0=k_PlantN0v 
     @parameters k_Lagr = k_Lagr share_autumn = share_autumn
     # in the fluctuation analysis the integrated
@@ -22,7 +23,10 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
         i_L(t), β_Ni(t), i_IN(t),
         i_L_anomaly(t), i_L_annual(t), β_Ni_annual(t),
         Lagr(t), i_Lagr(t), dec_Lagr(t), d_Lagr(t),
-        u_PlantNmax(t), k_PlantN(t), inc_period(t)
+        u_PlantNmax(t), k_PlantN(t), inc_period(t),
+        β_Pi_annual(t), β_Pi(t), i_IP(t),
+        u_PlantPmax(t), k_PlantP(t),
+        s_EP(t)
     end) 
     smooth_dt = 1/12/2
     eqs = [
@@ -32,7 +36,8 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
         i_L ~ (1-share_autumn) * i_L_annual + dec_Lagr,
         # i_L_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*i_L0, i_L0), 
         # β_Ni_annual ~ IfElse.ifelse((t1 <= t) & (t < t2), fac_inc*β_Ni0, β_Ni0),
-        inc_period ~ smoothstep_sesam(t, t1, smooth_dt) * (1-smoothstep_sesam(t, t2, smooth_dt)),
+        inc_period ~ smoothstep_sesam(t, t1, smooth_dt) * 
+            (1-smoothstep_sesam(t, t2, smooth_dt)),
         i_L_annual ~ i_L0 * (1 + (fac_inc-1)*inc_period), 
         β_Ni_annual ~ β_Ni0 * (1 + (fac_inc-1)*inc_period),
         i_L_anomaly ~ get_iL_anomaly(t, d_lit_agr),
@@ -40,12 +45,20 @@ function plant_face_fluct(;name, t1=0.0, t2=100.0, fac_inc=1.2,
         i_IN ~ i_IN0, 
         u_PlantNmax ~ u_PlantNmax0,
         k_PlantN ~ k_PlantN0,
+        #
+        β_Pi_annual ~ β_Pi0 * (1 + (fac_inc-1)*inc_period),
+        β_Pi ~ β_Pi_annual,
+        i_IP ~ i_IP0, 
+        u_PlantPmax ~ u_PlantPmax0,
+        k_PlantP ~ k_PlantP0,
+        s_EP ~ s_EP0, 
     ]
     defaults=Pair{Num, Any}[
         # rate not constrained
         k_PlantN0 => k_PlantN0v, 
-        # take as much N as provide with litter
+        # take as much N and P as provide with litter
         u_PlantNmax0 => i_L0/β_Ni0, 
+        u_PlantPmax0 => i_L0/β_Pi0, 
     ]
     continuous_events = vcat(
         [

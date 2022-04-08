@@ -1,7 +1,7 @@
 # important to initialize R_L correctly for steady plant, otherwise
 # it consumes (initialized with too high C/N ratio) inorganic N
 
-@named s = sesam3()
+@named s = sesam3CN()
 #@named s = sesam3(use_seam_revenue=true)
 @named pl = plant_face(;t1=20,t2=70)
 
@@ -18,14 +18,23 @@ p = pC = Dict(
     s.τ => 1/60*365,  ##<< biomass turnover rate (12 days)    
     s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
+    s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
     pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     #pl.β_Ni0 => 25.0,
     pl.β_Ni0 => 30.0,
     pl.i_IN0 => 0.0,   ##<< input of mineral N,
+    #
+    # P from plant model parameters not used in CN-Sesam soil model
+    pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+    pl.u_PlantPmax0 => Inf, 
+    pl.k_PlantP0 => Inf,
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 

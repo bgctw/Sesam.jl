@@ -23,8 +23,8 @@ function plant_const(;name)
     # end) 
     @parameters t 
     D = Differential(t)
-    @parameters i_L0  i_IN0  β_Ni0 i_IP0  β_Pi0 
-    @parameters u_PlantNmax0  k_PlantN0 u_PlantPmax0  k_PlantP0 s_EP0
+    @parameters i_L0  i_IN0   
+    @parameters u_PlantNmax0  k_PlantN0 β_Ni0 i_IP0  β_Pi0 u_PlantPmax0  k_PlantP0 s_EP0
     @variables (begin
         i_L(t), 
         β_Ni(t), i_IN(t),

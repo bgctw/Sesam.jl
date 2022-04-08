@@ -5,7 +5,7 @@ function sesam3C_protect(;name, k_N=60.0)
     D = Differential(t)
 
     @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
-    @parameters k_L  k_R  k_mN k_N=k_N
+    @parameters k_L  k_R  k_mN_L k_mN_R k_N=k_N
     @parameters α_R0
     @parameters K_eqR=1e-3 Q_max=10_000.0
 
@@ -34,13 +34,13 @@ function sesam3C_protect(;name, k_N=60.0)
         r_M ~ m*B,
         tvr_B ~ τ*B,
         dec_LPot ~ k_L * L,
-        dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN + α_L*syn_Enz),
+        dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN_L + α_L*syn_Enz),
         # the next two lines are different from sesam3
         # note the new observable Ra and paramters Q_max, K_eqR
         dec_RPot ~ k_R * Ra,
         Ra ~ compute_accessible_langmuir(R, Q_max, K_eqR),
         k_Rtot ~ k_R * Ra/R,
-        dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN + α_R*syn_Enz),
+        dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN_R + α_R*syn_Enz),
         u_C ~ dec_L + dec_R + κ_E*syn_Enz,
         C_synBCt ~ u_C - syn_Enz/ϵ - r_M,
         #C_synBC ~ IfElse.ifelse(C_synBCt > 0.0, ϵ*C_synBCt, C_synBCt), 

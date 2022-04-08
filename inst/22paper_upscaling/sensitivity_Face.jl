@@ -26,8 +26,10 @@ p = pC = Dict(
     s.k_L => 1.0,       ##<< 1/(x years)   
     #s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(40.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
+    s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
     pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
@@ -36,6 +38,13 @@ p = pC = Dict(
     #pl.i_IN0 => 0.0,   ##<< input of mineral N,
     pl.i_IN0 => 0.7,   ##<< 7kg/ha/yr
     #pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
+    #
+    # P from plant model parameters not used in CN-Sesam soil model
+    pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+    pl.u_PlantPmax0 => Inf, 
+    pl.k_PlantP0 => Inf,
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 
@@ -105,7 +114,8 @@ cols = (:par, :dType, :mode, :upper)
 parmsModeUpperRows = [
      (s.β_NB, LogNormal, 8. , 16.),
      (s.β_NEnz, LogNormal, 3.0 , 3.5),
-     (s.k_mN, LogNormal, 60*0.05 , 120*2.),
+     (s.k_mN_L, LogNormal, 60*0.05 , 120*2.),
+     (s.k_mN_R, LogNormal, 60*0.05 , 120*2.),
      (s.κ_E, LogNormal, 0.7 , 0.9),
      (s.k_R, LogNormal, 1/100, 1/10),
      (s.k_L, LogNormal, 12/18, 12/4), # tvr time between 18 months and 4 months
@@ -194,7 +204,8 @@ i_outputLatex = () -> begin
         # for this create ordered Categorical vector and set levels
         transform(:par => ByRow(string ∘ parsymbol) => :pars) 
         transform(:pars => (x -> CategoricalArray(x,ordered=true)) => :pars)
-        transform(:pars => (x -> levels!(x,["β_NB","β_NEnz","k_R","k_L","κ_E","a_E","k_mN","τ","m","ϵ","ϵ_tvr","ν_N","i_BN","l_N"])) => :pars)
+        # transform(:pars => (x -> levels!(x,["β_NB","β_NEnz","k_R","k_L","κ_E","a_E","k_mN","τ","m","ϵ","ϵ_tvr","ν_N","i_BN","l_N"])) => :pars)
+        transform(:pars => (x -> levels!(x,["β_NB","β_NEnz","k_R","k_L","κ_E","a_E","k_mN_R","k_mN_L","τ","m","ϵ","ϵ_tvr","ν_N","i_BN","l_N"])) => :pars)
         sort(:pars)
         # getproperty(:pars)
         # join("\",\"")
@@ -228,7 +239,7 @@ end
 
 
 #-------- second pass with fewer vars but larger N for variance
-#names_omit = [s.k_mN, s.l_N, s.ϵ_tvr, s.ν_N]
+#names_omit = [s.k_mN_L, s.k_mN_L, s.l_N, s.ϵ_tvr, s.ν_N]
 names_omit = []
 names_opt = setdiff(names_opt_all, names_omit)
 #upd! = SystemParUpdater(collect(names_opt), sp)
@@ -360,10 +371,10 @@ sort!(df_T, :original, rev=true)
 sort!(df_S, :originalT, rev=true) # sort same as df_T
 par_ordered = df_T.par
 using Plots
-scatter(string.(df_T.par), df_T.original, label="Total", yerror=(df_T.original .- df_T.
+Plots.scatter(string.(df_T.par), df_T.original, label="Total", yerror=(df_T.original .- df_T.
 min_c_i_,df_T.max_c_i_ .- df_T.original))
 # must be the same sort order as df_T, otherwise x-lables change
-scatter!(string.(df_S.par), df_S.original, label="First order", yerror=(df_S.original .- df_S.
+Plots.scatter!(string.(df_S.par), df_S.original, label="First order", yerror=(df_S.original .- df_S.
 min_c_i_, df_S.max_c_i_ .- df_S.original))
 
 # df_ST = vcat(df_S, df_T)

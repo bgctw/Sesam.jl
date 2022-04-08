@@ -20,11 +20,13 @@ if occursin("Sesam", Base.current_project())
 	# activate the shared project environment
 	Pkg.activate(Base.current_project())
 	# instantiate, i.e. make sure that all packages are downloaded
+	Pkg.develop("MTKHelpers")
 	Pkg.instantiate()
 	using PlutoLinks: @revise
-	@revise using Sesam
-	Pkg.develop("MTKHelpers")
-	@revise using MTKHelpers
+	using Sesam, MTKHelpers
+	# currently using @revise enters an endless loop of reloading
+	#@revise using Sesam
+	#@revise using MTKHelpers
 else
 	using Sesam, MTKHelpers
 end
@@ -100,7 +102,7 @@ md"Define the System components"
 begin
 	tspinup = 2000.0; tface=100.0
 	#@named s = sesam3(use_seam_revenue=true)
-	@named s = sesam3(use_seam_revenue=false)
+	@named s = sesam3CN(use_seam_revenue=false)
 	@named pl = plant_face(t1=0.0,t2=tface)
 	@named sp = plant_sesam_system(s,pl)
 end;
@@ -121,8 +123,10 @@ begin
 	    s.k_L => 1.0,       ##<< 1/(x years)   
 	    #s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
 	    s.k_R => 1/(40.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-	    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+	    s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
 	        # /yr enzyme turnover 60 times a year
+		s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+		# /yr enzyme turnover 60 times a year
 	    s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
 	    #i_L => t -> 1 - exp(-t),  # litter input
 	    pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
@@ -131,6 +135,12 @@ begin
 	    #pl.i_IN0 => 0.0,   ##<< input of mineral N,
 	    pl.i_IN0 => 0.7,   ##<< 7kg/ha/yr
 	    #pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
+		# P from plant model parameters not used in CN-Sesam soil model
+		pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+		pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+		pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+		pl.u_PlantPmax0 => Inf, 
+		pl.k_PlantP0 => Inf,
 	)
 	pN = Dict(
 	    s.i_BN => 0.4, ##<< potential immobilization flux rate 
@@ -172,7 +182,8 @@ begin
 	parmsModeUpperRows = [
 	     (s.β_NB, LogNormal, 8. , 16.),
 	     (s.β_NEnz, LogNormal, 3.0 , 3.5),
-	     (s.k_mN, LogNormal, 60*0.05 , 120*2.),
+	     (s.k_mN_L, LogNormal, 60*0.05 , 120*2.),
+	     (s.k_mN_R, LogNormal, 60*0.05 , 120*2.),
 	     (s.κ_E, LogNormal, 0.7 , 0.9),
 	     (s.k_R, LogNormal, 1/100, 1/10),
 	     (s.k_L, LogNormal, 12/18, 12/4), # tvr time between 18 months and 4 months
@@ -188,6 +199,9 @@ begin
 	]
 	df_dist = rename!(DataFrame(columntable(parmsModeUpperRows)), collect(cols))
 end;
+
+# ╔═╡ ad1b457f-f98e-4556-83f2-477e2b857a07
+#df_dist
 
 # ╔═╡ 383cfe5b-922e-4151-9375-6093523d7f03
 begin
@@ -206,7 +220,7 @@ end
 md"""
 ## Modifying parameters
 
-Select the parameters to explore with sliders below.
+Select the parameters to explore with sliders below. (Below the plot)
 """
 
 # ╔═╡ 1d6e347e-1a1b-4f2a-bc48-524c8d36f771
@@ -305,7 +319,7 @@ plot(sol0t, tspan = (tstart, tend), vars=[s.Φ_NB,s.Φ_N-s.i_L/s.β_Ni]); hline!
 md"## Thanks"
 
 # ╔═╡ Cell order:
-# ╟─0232943f-74f8-40ec-96a3-495d5942e897
+# ╠═0232943f-74f8-40ec-96a3-495d5942e897
 # ╟─d6f85fa6-97cc-40e9-841a-053563713993
 # ╟─032c42f2-5103-11eb-0dce-e7ec59924648
 # ╟─827fbc3a-512d-11eb-209e-cd74ddc17bae
@@ -321,12 +335,13 @@ md"## Thanks"
 # ╠═36b322a5-ef4a-4697-90a8-720d8c224219
 # ╟─351ebf17-102c-4497-aab0-1e0a3f55f799
 # ╟─7c778bf7-de69-4c14-99b6-b76cdf06596c
-# ╟─8247cdc0-8b23-4b1f-a4ee-6e6ac09a2232
-# ╟─383cfe5b-922e-4151-9375-6093523d7f03
+# ╠═8247cdc0-8b23-4b1f-a4ee-6e6ac09a2232
+# ╠═ad1b457f-f98e-4556-83f2-477e2b857a07
+# ╠═383cfe5b-922e-4151-9375-6093523d7f03
 # ╟─5c6d02b6-0aed-4ad3-843f-7e46367171cf
 # ╟─d45a7ad5-4803-4846-ad2e-a9d4fd294413
-# ╠═a8b21bd2-3914-46b2-8b11-f9279f88e732
-# ╠═66dae3d2-9ba5-491b-a3cd-77fcfbb0ab78
+# ╟─a8b21bd2-3914-46b2-8b11-f9279f88e732
+# ╟─66dae3d2-9ba5-491b-a3cd-77fcfbb0ab78
 # ╠═b565d593-1369-4efe-8704-90f1611526c4
 # ╟─1d6e347e-1a1b-4f2a-bc48-524c8d36f771
 # ╟─7f1a89ce-1b84-45f0-af85-87b1050b18ba

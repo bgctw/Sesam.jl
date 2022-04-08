@@ -41,7 +41,7 @@ function sesam3C_revMM(;name, k_N=60.0)
     D = Differential(t)
 
     @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
-    @parameters k_L  k_R  k_mN k_N=k_N
+    @parameters k_L  k_R  k_mN_L k_mN_R k_N=k_N
     @parameters α_R0
 
     @variables (begin
@@ -68,9 +68,9 @@ function sesam3C_revMM(;name, k_N=60.0)
         r_M ~ m*B,
         tvr_B ~ τ*B,
         dec_LPot ~ k_L * L,
-        dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN + α_L*syn_Enz),
+        dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN_L + α_L*syn_Enz),
         dec_RPot ~ k_R * R,
-        dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN + α_R*syn_Enz),
+        dec_R ~ dec_RPot*(α_R * syn_Enz)/(k_mN_R + α_R*syn_Enz),
         u_C ~ dec_L + dec_R + κ_E*syn_Enz,
         C_synBCt ~ u_C - syn_Enz/ϵ - r_M,
         #C_synBC ~ IfElse.ifelse(C_synBCt > 0.0, ϵ*C_synBCt, C_synBCt), 
@@ -169,7 +169,7 @@ sesam3_revMM(args...;kwargs...) = sesam3CN_revMM(args...;kwargs...)
 function get_revenue_eq_seam(sN)
     # needs dec_RPot, which is specific to revMM decomposition formulation
     @parameters t 
-    @unpack dec_LPot, dec_RPot, k_mN, syn_Enz, α_L, α_R, β_NL, β_NR = sN
+    @unpack dec_LPot, dec_RPot, k_mN_L, k_mN_R, syn_Enz, α_L, α_R, β_NL, β_NR = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
         rev_LC(t), rev_RC(t), rev_LN(t), rev_RN(t), 
@@ -178,8 +178,8 @@ function get_revenue_eq_seam(sN)
     # need to be defined in coupled component:
     @variables w_C(t), w_N(t)
     eqs = [
-        rev_LC ~ dec_LPot/(k_mN + α_L*syn_Enz),
-        rev_RC ~ dec_RPot/(k_mN + α_R*syn_Enz),
+        rev_LC ~ dec_LPot/(k_mN_L + α_L*syn_Enz),
+        rev_RC ~ dec_RPot/(k_mN_R + α_R*syn_Enz),
         rev_LN ~ rev_LC/β_NL,
         rev_RN ~ rev_RC/β_NR,
         α_RC ~ rev_RC/(rev_RC + rev_LC),

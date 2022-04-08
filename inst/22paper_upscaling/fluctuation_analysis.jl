@@ -24,8 +24,10 @@ p = pC = Dict(
     s.k_L => 1.0,       ##<< 1/(x years)   
     #s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(40.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    ss.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    ss.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
+    ss.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    # /yr enzyme turnover 60 times a year
     s.k_N => 60, 
     s.k_m => 0.05, 
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
@@ -38,6 +40,13 @@ p = pC = Dict(
     pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
     pl.k_PlantN0 => 100.0, 
     #pl.k_PlantN0 => 2, # try with a lower rate - cannot resupply
+    #
+    #P from plant model parameters not used in CN-Sesam soil model
+    pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+    pl.u_PlantPmax0 => Inf, 
+    pl.k_PlantP0 => Inf,
 )
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 

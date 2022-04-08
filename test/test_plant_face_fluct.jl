@@ -3,6 +3,7 @@ D = Differential(t)
 @variables x(t) # integrator
 
 @named plf = plant_face_fluct()
+#structural_simplify(plf) 
 
 function rep_plf(pl;name, simplify=true)
     @parameters t
@@ -24,6 +25,13 @@ p_plf = Dict(
     plf.i_IN0 => 0,   ##<< input of mineral N,
     plf.t1 => 0.0,
     plf.t2 => 3.0,
+    #
+    plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
+    plf.β_Ni0 => 25,
+    plf.i_IN0 => 0,   ##<< input of mineral N, 
+    plf.β_Pi0 => 25*20, ## leaf litter N:P ~20(massratio Kang10)
+    plf.i_IP0 => 0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    plf.s_EP0 => 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux
 )
 u_plf = Dict(
     plf.Lagr => 0.2,

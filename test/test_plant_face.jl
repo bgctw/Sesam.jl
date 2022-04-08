@@ -17,6 +17,13 @@ p_plf = Dict(
     plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     plf.β_Ni0 => 25,
     plf.i_IN0 => 0,   ##<< input of mineral N,
+    #
+    # P from plant model parameters not used in CN-Sesam soil model
+    plf.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+    plf.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    plf.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+    plf.u_PlantPmax0 => Inf, 
+    plf.k_PlantP0 => Inf,
 )
 tspan = (0, 120)
 prob = ODEProblem(plf_rep, [0.0], tspan, p_plf)

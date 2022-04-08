@@ -23,8 +23,10 @@ p = pC = Dict(
     s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     #s.k_R => 5.0,       ##<< here same as k_L - lower because protected
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
+    s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
     pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
@@ -32,6 +34,13 @@ p = pC = Dict(
     pl.i_IN0 => 0,   ##<< input of mineral N,
     s.K_eqR => 1e-2, ##<< chemical equilibrium of sorption/desorption
     s.Q_max => 100_000, ##<< maximum sorption capacity
+    #
+    # P from plant model parameters not used in CN-Sesam soil model
+    pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
+    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
+    pl.u_PlantPmax0 => Inf, 
+    pl.k_PlantP0 => Inf,
 )
 # adjust sorption parameters in a way so that apparent turnover
 # time machtes the observed turnover time of total residue pool

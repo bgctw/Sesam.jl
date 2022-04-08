@@ -11,26 +11,28 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         β_PL(t), β_PR(t),
         leach_P(t),
         α_LP(t), α_RP(t),
-        dec_LP(t), dec_RP(t), dec_LPPlant(t),
+        dec_LP(t), dec_RP(t), dec_RPPlant(t),
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
         s_EP(t) # synthesis of E_LP enzymes by plants
     end)
-    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP 
+    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP k_mN_Pl
 
     @unpack L, R, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
-    @unpack k_mN = sN
+    @unpack k_mN_L, k_mN_R = sN
 
     eqs = [
         β_PL ~ L/L_P, β_PR ~ R/R_P,
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP + ϵ_tvr*tvr_B/β_PB + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        # TODO: allocate s_EP to accessible portions of L and R, for now only to L
-        dec_LPPlant ~ k_LP * L_P * (s_EP)/(k_mN + s_EP),
-        dec_LP ~ k_LP * L_P * (α_LP * syn_Enz + s_EP)/(k_mN + α_LP*syn_Enz + s_EP),
-        dec_RP ~ k_RP * R_P * (α_RP * syn_Enz)/(k_mN + α_RP*syn_Enz),
+        # TODO: allocate s_EP to accessible portions of L and R, for now only to R
+        # dec_RPPlant is the decomp that would be to plant enzymes alone
+        # dec_RP is decomp due to the sum of enzmyes of mic and plant
+        dec_RPPlant ~ k_RP * R_P * (s_EP)/(k_mN_Pl + s_EP), # part of dec_RP
+        dec_LP ~ k_LP * L_P * (α_LP * syn_Enz)/(k_mN_L + α_LP*syn_Enz),
+        dec_RP ~ k_RP * R_P * (α_RP * syn_Enz + s_EP)/(k_mN_R + α_RP*syn_Enz + s_EP),
         u_PlantP ~ min(u_PlantPmax, k_PlantP*I_P), 
         dI_P ~ i_IP - u_PlantP - leach_P + Φ_P,
         leach_P ~ l_P*I_P,
@@ -51,7 +53,7 @@ function get_revenue_eq_sesam3CNP(sP)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sP
     @unpack β_PL, β_PR, β_PEnz = sP
-    @unpack α_LP, α_RP, dec_LP, dec_RP, dec_LPPlant = sP
+    @unpack α_LP, α_RP, dec_LP, dec_RP, dec_RPPlant = sP
     sts = @variables (begin
         α_LT(t), α_RT(t),
         α_LPT(t), α_RPT(t),
@@ -69,8 +71,8 @@ function get_revenue_eq_sesam3CNP(sP)
         return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
         # + 0*w_C only weighted P return, dec_LP alread 
         # return of enzymes produced in addition to that of plants
-        return_LP ~ (dec_LP - dec_LPPlant) * w_P, 
-        return_RP ~ dec_RP * w_P, 
+        return_LP ~ (dec_LP) * w_P, 
+        return_RP ~ (dec_RP - dec_RPPlant) * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),
         revenue_R ~ return_R / (α_R * syn_Enz_w),
         revenue_LP ~ return_LP / (α_LP * syn_Enz_w),

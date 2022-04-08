@@ -14,7 +14,9 @@ p = pC = Dict(
     s.τ => 1/60*365,  ##<< biomass turnover rate (12 days)    
     s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+        # /yr enzyme turnover 60 times a year
+    s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
@@ -41,6 +43,8 @@ pP = Dict(
     s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinary and energy compounds
     s.l_P => 0.0,      # no leaching       
     s.ν_P =>  0.3,     # microbial P use efficiency accounting for apparent mineralization
+    s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+        # /yr enzyme turnover 60 times a year
 )
 p = merge(pC, pN, pP)
 
@@ -67,7 +71,7 @@ u0P = Dict(
 u0 = merge(u0C, u0N, u0P)    
 #u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
-tspan = (0.0,100.0)    
+tspan = (0.0,200.0)    
 
 #prob = ODEProblem(sp,[t for t in u0], tspan, [t for t in p])
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
@@ -77,18 +81,27 @@ sol = sol_sesam3 = solve(prob);
 
 i_plot = () -> begin
     #using Plots
+    ts = tspan
+    ts = (2,2.2)
     plot(sol)
     plot(sol, vars=[s.R])
     plot(sol, vars=[s.calculate_β_PR_sesam3])
-    plot(sol, vars=[s.lim_C, s.lim_N, s.lim_P])
+    plot(sol, vars=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
     plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP])
+    plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP], tspan=ts)
+    plot(sol, vars=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
+    plot(sol, vars=[s.dec_RP, s.dec_RPPlant], tspan=ts)
+
     plot(sol, vars=[p[s.a_E] * s.B])
+    plot(sol, vars=[s.α_LP])
 end
 
 @testset "non-negative pools" begin
     #st = first(states(sp))
     for st in states(sp)
-        @test all(sol[st] .>= 0.0) 
+        @show st
+        #@test all(sol[st] .>= 0.0) 
+        @test all(sol[st] .>= -eps(Float64)*100) 
     end
 end;
 

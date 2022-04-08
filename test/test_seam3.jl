@@ -22,7 +22,7 @@ p = pC = Dict(
     s.τ => 1/60*365,  ##<< biomass turnover rate (12 days)    
     s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
-    # s.k_mN => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    # s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
     #     # /yr enzyme turnover 60 times a year
     s.k_m => 0.05, # enzyme half-saturation constant, in magnitude of enzymes * 
     s.k_N => 60, # /yr enzyme turnover 60 times a year
