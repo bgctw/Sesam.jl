@@ -41,9 +41,11 @@ pP = Dict(
     s.i_BP => pN[s.i_BN],       ##<< potential immobilization flux rate 
     s.β_PEnz => 50.0,     # TODO Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
     s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinary and energy compounds
-    s.l_P => 0.0,      # no leaching       
-    s.ν_P =>  0.3,     # microbial P use efficiency accounting for apparent mineralization
-    s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    s.l_P => 0.01,      # almost no leaching       
+    s.ν_P =>  0.9,     # microbial P use efficiency accounting for apparent 
+    # mineralization, pertains only to SOM depolimerization, biomineralization is 
+    # all mineralized
+    # s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
 )
 p = merge(pC, pN, pP)
@@ -77,7 +79,9 @@ tspan = (0.0,200.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3 = solve(prob);
+#sol = sol_sesam3 = solve(prob);
+sol = sol_sesam3 = solve(prob, Tsit5());
+#sol = sol_sesam3 = solve(prob, Tsit5(), callback=PositiveDomain(prob.u0));
 
 i_plot = () -> begin
     #using Plots
@@ -91,18 +95,25 @@ i_plot = () -> begin
     plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP], tspan=ts)
     plot(sol, vars=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
     plot(sol, vars=[s.dec_RP, s.dec_RPPlant], tspan=ts)
+    plot(sol, vars=[s.I_P])
+    plot(sol, vars=[s.u_PlantP, s.u_immPPot])
+    plot(sol, vars=[s.p_uPmic])
 
     plot(sol, vars=[p[s.a_E] * s.B])
-    plot(sol, vars=[s.α_LP])
+    plot(sol, vars=[s.α_LP, s.α_RP])
+    plot(sol, vars=[s.α_LP, s.α_RP], tspan=(68,92))
+    plot(sol, vars=[s.α_LPT, s.α_RPT], tspan=(80,92))
 end
 
 @testset "non-negative pools" begin
     #st = first(states(sp))
     for st in states(sp)
-        @show st
+        #@show st
         #@test all(sol[st] .>= 0.0) 
         @test all(sol[st] .>= -eps(Float64)*100) 
     end
+    # minimum(sol[s.α_LP])
+    # minimum(sol[s.α_RP])
 end;
 
 @testset "microbial dC balance" begin
@@ -148,8 +159,8 @@ end;
 end;
 
 @testset "microbial dP balance" begin
-    uptake = p[s.ν_P]*sol[s.u_POM]
-    usage = sol[s.syn_Enz]/p[s.β_PEnz] + sol[s.syn_B]/p[s.β_PB] + sol[s.Φ_PB]
+    uptake = p[s.ν_P]*sol[s.u_POM];
+    usage = sol[s.syn_Enz]/p[s.β_PEnz] + sol[s.syn_B]/p[s.β_PB] + sol[s.Φ_PB];
     #plot(sol.t, [uptake, usage])
     @test all(isapprox.(uptake, usage, rtol = 1e-6))
 end;

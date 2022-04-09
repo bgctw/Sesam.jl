@@ -11,13 +11,13 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         β_PL(t), β_PR(t),
         leach_P(t),
         α_LP(t), α_RP(t),
-        dec_LP(t), dec_RP(t), dec_RPPlant(t),
+        dec_LP(t), dec_RP(t), dec_LPPlant(t), dec_RPPlant(t),
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
-        s_EP(t) # synthesis of E_LP enzymes by plants
+        s_EP(t), pL_sEP(t) # synthesis of E_LP adn E_RP enzymes by plants
     end)
-    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP k_mN_Pl
+    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP 
 
     @unpack L, R, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
     @unpack k_mN_L, k_mN_R = sN
@@ -27,20 +27,25 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP + ϵ_tvr*tvr_B/β_PB + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        # TODO: allocate s_EP to accessible portions of L and R, for now only to R
-        # dec_RPPlant is the decomp that would be to plant enzymes alone
-        # dec_RP is decomp due to the sum of enzmyes of mic and plant
-        dec_RPPlant ~ k_RP * R_P * (s_EP)/(k_mN_Pl + s_EP), # part of dec_RP
-        dec_LP ~ k_LP * L_P * (α_LP * syn_Enz)/(k_mN_L + α_LP*syn_Enz),
-        dec_RP ~ k_RP * R_P * (α_RP * syn_Enz + s_EP)/(k_mN_R + α_RP*syn_Enz + s_EP),
+        # assume that proportion of s_EP to biomineralizing L is 
+        # proportional to potential biomineralization flux
+        pL_sEP ~ k_LP*L_P/(k_LP*L_P + k_RP*R_P),
+        dec_LP ~ k_LP * L_P * (α_LP*syn_Enz + pL_sEP*s_EP)/(k_mN_L + α_LP*syn_Enz + pL_sEP*s_EP),
+        dec_LPPlant ~ k_LP * L_P * (pL_sEP*s_EP)/(k_mN_R + pL_sEP*s_EP), 
+        # while_RP is decomp due to the sum of enzmyes of mic and plant (assumed to be the same with same k_M)
+        # dec_RPPlant is the decomp that would be by enzymes levels by solely plant production, used in revenue calculation
+        dec_RP ~ k_RP * R_P * (α_RP*syn_Enz + (1-pL_sEP)*s_EP)/(k_mN_R + α_RP*syn_Enz + (1-pL_sEP)*s_EP),
+        dec_RPPlant ~ k_RP * R_P * ((1-pL_sEP)*s_EP)/(k_mN_R + (1-pL_sEP)*s_EP), 
         u_PlantP ~ min(u_PlantPmax, k_PlantP*I_P), 
-        dI_P ~ i_IP - u_PlantP - leach_P + Φ_P,
+        dI_P ~ i_IP - u_PlantP - leach_P  + dec_RP + dec_LP + Φ_P,
         leach_P ~ l_P*I_P,
         Φ_P ~ Φ_Pu + Φ_PB + Φ_Ptvr,
         Φ_Ptvr ~ r_tvr/β_PB,
         Φ_Pu ~ (1-ν_P) * u_POM,
+        # dec_RP is biomineralization - cleaved P is all mineralized
+        # u_POM is from depolymerizing - only a fraction ν_P is mineralized
         u_PPot ~ ν_P * u_POM + u_immPPot,
-        u_POM ~ dec_L/β_PL + dec_R/β_PR + dec_LP + dec_RP + κ_E*tvr_Enz/β_PEnz,
+        u_POM ~ dec_L/β_PL + dec_R/β_PR + κ_E*tvr_Enz/β_PEnz,
         u_immPPot ~ i_BP * I_P,
         P_synBP ~ u_PPot - syn_Enz/β_PEnz,
         M_ImbP ~ u_PPot - (syn_B/β_PB + syn_Enz/β_PEnz),
@@ -53,11 +58,13 @@ function get_revenue_eq_sesam3CNP(sP)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sP
     @unpack β_PL, β_PR, β_PEnz = sP
-    @unpack α_LP, α_RP, dec_LP, dec_RP, dec_RPPlant = sP
+    @unpack α_LP, α_RP, dec_LP, dec_RP, dec_RPPlant, dec_LPPlant = sP
+    @unpack u_immPPot, u_PlantP = sP
     sts = @variables (begin
         α_LT(t), α_RT(t),
         α_LPT(t), α_RPT(t),
         syn_Enz_w(t), 
+        p_uPmic(t),
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_LP(t), return_RP(t), revenue_LP(t), revenue_RP(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
@@ -69,10 +76,12 @@ function get_revenue_eq_sesam3CNP(sP)
         syn_Enz_w ~ syn_Enz*(w_C + w_N/β_NEnz + w_P/β_PEnz),
         return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
         return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
-        # + 0*w_C only weighted P return, dec_LP alread 
         # return of enzymes produced in addition to that of plants
-        return_LP ~ (dec_LP) * w_P, 
-        return_RP ~ (dec_RP - dec_RPPlant) * w_P, 
+        # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
+        # dec_LP is already in P units, no need to devide by β_P
+        p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
+        return_LP ~ (dec_LP - dec_LPPlant) * p_uPmic * w_P, 
+        return_RP ~ (dec_RP - dec_RPPlant) * p_uPmic * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),
         revenue_R ~ return_R / (α_R * syn_Enz_w),
         revenue_LP ~ return_LP / (α_LP * syn_Enz_w),
