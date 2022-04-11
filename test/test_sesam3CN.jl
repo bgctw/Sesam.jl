@@ -60,7 +60,7 @@ u0 = u0C = Dict(
     #s.cumresp => 0.0,
     s.α_R => 0.1, # enzyme synthesis into L # TODO model by optimality
 )
-u0C[s.α_L] = 1.0 - u0C[s.α_R]
+#u0C[s.α_L] = 1.0 - u0C[s.α_R]
 u0N = Dict(
     s.I_N => 0.04, ##<< inorganic pool gN/m2 
     s.L_N => u0[s.L]/p[pl.β_Ni0],

@@ -10,7 +10,8 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         u_PPot(t), P_synBP(t), M_ImbP(t), 
         β_PL(t), β_PR(t),
         leach_P(t),
-        α_LP(t), α_RP(t),
+        α_LP(t), 
+        α_RP(t),
         dec_LP(t), dec_RP(t), dec_LPPlant(t), dec_RPPlant(t),
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
@@ -110,7 +111,8 @@ function sesam3CNP(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sP=sesam3P
         C_synBmC(t), 
         C_synBN(t), C_synBmN(t),
         C_synBP(t), C_synBmP(t),
-        dα_L(t), dα_R(t),
+        #dα_L(t), 
+        dα_R(t),
         dα_LP(t), dα_RP(t),
         w_C(t), w_N(t), lim_C(t), lim_N(t),
         sum_w(t),
@@ -136,7 +138,8 @@ function sesam3CNP(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sP=sesam3P
         sum_w ~ w_C + w_N + w_P,
         lim_C ~ w_C/sum_w, lim_N ~ w_N/sum_w, lim_P ~ w_P/sum_w,# normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
-        D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
+        #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
+        α_L ~ 1 - (α_R + α_LP + α_RP),
         D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
         D(α_LP) ~ dα_LP, dα_LP ~ (α_LPT - α_LP)*(τ + abs(syn_B)/B),
         D(α_RP) ~ dα_RP, dα_RP ~ (α_RPT - α_RP)*(τ + abs(syn_B)/B),

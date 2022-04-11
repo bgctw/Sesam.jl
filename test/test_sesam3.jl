@@ -59,7 +59,7 @@ u0 = u0C = Dict(
     s.α_RP => 0.1, 
     s.α_LP => 0.1, 
 )
-u0C[s.α_L] = 1.0 - u0C[s.α_R] - u0C[s.α_LP] - u0C[s.α_RP]
+#u0C[s.α_L] = 1.0 - u0C[s.α_R] - u0C[s.α_LP] - u0C[s.α_RP]
 u0N = Dict(
     s.I_N => 0.04, ##<< inorganic pool gN/m2 
     s.L_N => u0[s.L]/p[pl.β_Ni0],

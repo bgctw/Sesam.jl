@@ -169,7 +169,8 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(
     sts = @variables (begin
         C_synBN(t), 
         C_synBmC(t), C_synBmN(t),
-        dα_L(t), dα_R(t),
+        #dα_L(t), 
+        dα_R(t),
         w_C(t), w_N(t), lim_C(t), lim_N(t)
     end)
     ps = @parameters δ=δ
@@ -188,7 +189,8 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(
         # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
-        D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
+        #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
+        α_L ~ 1 - α_R,
         D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
         ]
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
