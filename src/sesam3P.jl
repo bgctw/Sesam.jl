@@ -32,7 +32,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         # proportional to potential biomineralization flux
         pL_sEP ~ k_LP*L_P/(k_LP*L_P + k_RP*R_P),
         dec_LP ~ k_LP * L_P * (α_LP*syn_Enz + pL_sEP*s_EP)/(k_mN_L + α_LP*syn_Enz + pL_sEP*s_EP),
-        dec_LPPlant ~ k_LP * L_P * (pL_sEP*s_EP)/(k_mN_R + pL_sEP*s_EP), 
+        dec_LPPlant ~ k_LP * L_P * (pL_sEP*s_EP)/(k_mN_L + pL_sEP*s_EP), 
         # while_RP is decomp due to the sum of enzmyes of mic and plant (assumed to be the same with same k_M)
         # dec_RPPlant is the decomp that would be by enzymes levels by solely plant production, used in revenue calculation
         dec_RP ~ k_RP * R_P * (α_RP*syn_Enz + (1-pL_sEP)*s_EP)/(k_mN_R + α_RP*syn_Enz + (1-pL_sEP)*s_EP),
