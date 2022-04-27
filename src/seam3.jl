@@ -57,7 +57,7 @@ end
 # nitrogen dynamics as in sesam3N_revMM
 seam3N(;name) = sesam3N_revMM(;name, sC = seam3C(name=:sC))
 
-function seam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false)
+function seam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false)
     @parameters t 
     D = Differential(t)
     @named sN = seam3N()
@@ -78,8 +78,10 @@ function seam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false)
         C_synBmC ~ min(C_synBN), 
         C_synBmN ~ min(C_synBC), 
         # need to limit, otherwise danger of Inf and nan after too long steps
-        w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
+        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
+        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
+        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
+        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
         # w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
         # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot

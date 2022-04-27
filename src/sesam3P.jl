@@ -85,8 +85,9 @@ function get_revenue_eq_sesam3CNP(sP)
         return_RP ~ (dec_RP - dec_RPPlant) * p_uPmic * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),
         revenue_R ~ return_R / (α_R * syn_Enz_w),
-        revenue_LP ~ return_LP / (α_LP * syn_Enz_w),
-        revenue_RP ~ return_RP / (α_RP * syn_Enz_w),
+        # avoid deviding by zero. Checking > 0 fails with Derivative need to check > small_number
+        revenue_LP ~ IfElse.ifelse(α_LP * syn_Enz_w > 1e-16, return_LP / (α_LP * syn_Enz_w), 0.0),
+        revenue_RP ~ IfElse.ifelse(α_RP * syn_Enz_w > 1e-16, return_RP / (α_RP * syn_Enz_w), 0.0),
         revenue_sum ~ revenue_L + revenue_R + revenue_LP + revenue_RP,
         α_LT ~ revenue_L/revenue_sum,
         α_RT ~ revenue_R/revenue_sum,
@@ -102,7 +103,7 @@ function get_revenue_eq_sesam3CNP(sP)
 end
 
 
-function sesam3CNP(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sP=sesam3P(name=:sP))
+function sesam3CNP(;name, δ=40.0, max_w=12, use_seam_revenue=false, sP=sesam3P(name=:sP))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sP
@@ -118,7 +119,7 @@ function sesam3CNP(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sP=sesam3P
         sum_w(t),
         w_P(t), lim_P(t)
     end)
-    ps = @parameters δ=δ
+    ps = @parameters δ=δ max_w=max_w
     eqs_rev, sts_rev = get_revenue_eq_sesam3CNP(sP)
     @variables α_LT(t) α_RT(t)
     @variables α_LPT(t) α_RPT(t)
@@ -126,15 +127,24 @@ function sesam3CNP(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sP=sesam3P
         C_synBN ~ β_NB*N_synBN,
         C_synBP ~ β_PB*P_synBP,
         syn_B ~ min(C_synBC, C_synBN, C_synBP), 
-        C_synBmC ~ min(C_synBN, C_synBP), 
-        C_synBmN ~ min(C_synBC, C_synBP), 
-        C_synBmP ~ min(C_synBC, C_synBN), 
-        # need minimum, otherwise danger of Inf and nan -> instability
-        w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
-        w_P ~ min(max_w, exp(δ/tvr_B*(C_synBmP - C_synBP))),
-        # w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
-        # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
+        # C_synBmC ~ min(C_synBN, C_synBP), 
+        # C_synBmN ~ min(C_synBC, C_synBP), 
+        # C_synBmP ~ min(C_synBC, C_synBN), 
+        # need minimum, otherwise danger of Inf and NaN -> instability
+        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
+        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
+        # w_P ~ min(max_w, exp(δ/tvr_B*(C_synBmP - C_synBP))),
+        # need minimum inisde exp, otherwise computation of Duals may cause instability
+        # w_C ~ exp(min(max_w, δ/tvr_B*(C_synBmC - C_synBC))),
+        # w_N ~ exp(min(max_w, δ/tvr_B*(C_synBmN - C_synBN))),
+        # w_P ~ exp(min(max_w, δ/tvr_B*(C_synBmP - C_synBP))),
+        # with new formulation available flux cannot be too much smaller than syn_B
+        # w_C ~ exp(-δ/tvr_B*(C_synBC - syn_B)),
+        # w_N ~ exp(-δ/tvr_B*(C_synBN - syn_B)),
+        # w_P ~ exp(-δ/tvr_B*(C_synBP - syn_B)),
+        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
+        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
+        w_P ~ exp(min(max_w, -δ/tvr_B*(C_synBP - syn_B))),
         sum_w ~ w_C + w_N + w_P,
         lim_C ~ w_C/sum_w, lim_N ~ w_N/sum_w, lim_P ~ w_P/sum_w,# normalized for plot
         # α_LT, α_RT by get_revenue_eq_X

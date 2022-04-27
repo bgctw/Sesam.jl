@@ -48,12 +48,12 @@ solver = Vern7() # implicit method
 #using  deSolveDiffEq; solver = deSolveDiffEq.lsoda()
 
 # solver = Tsit5() # takes forever and produces wrong solution
-sol = solve(prob, solver, tspan=tspan,
+sol = solve(prob, solver,
     reltol = 1e-5,  # simulate litterfall with higher accuracy
     #progress = true, progress_steps = 1,
     #saveat = 0.005 # uncomment for proper plotting
 );
-# sol = sol_euler = solve(prob, Euler(), tspan=tspan,
+# sol = sol_euler = solve(prob, Euler(),
 #     dt = 0.005,
 #     progress = true, progress_steps = 1,
 #     #saveat = 0.005

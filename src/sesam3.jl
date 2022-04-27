@@ -162,7 +162,7 @@ function get_revenue_eq_sesam3CN(sN)
 end
 
 
-function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(name=:sN))
+function sesam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N(name=:sN))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sN
@@ -183,8 +183,10 @@ function sesam3CN(;name, δ=20.0, max_w=1e5, use_seam_revenue=false, sN=sesam3N(
         C_synBmC ~ min(C_synBN), 
         C_synBmN ~ min(C_synBC), 
         # need minimum, otherwise danger of Inf and nan -> instability
-        w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
+        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
+        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
+        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
+        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
         # w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
         # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot

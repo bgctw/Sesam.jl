@@ -44,8 +44,3 @@ Dict(p)[i_L]
 # biomass N balance
  plot(sol, tspan=(0.0,2.0), vars=[u_NOM, r_B+syn_B+syn_Enz])
 # plot(sol,  vars=[u_C, r_B+syn_B+syn_Enz])
-
-DifferentialEquations v7.0.0
-IfElse v0.1.1
-ModelingToolkit v8.0.0
-Unitful v1.10.1

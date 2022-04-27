@@ -73,7 +73,7 @@ get_litter_input_fake_system = () -> begin
     prob_pl = ODEProblem(plse, [pl.Lagr => p[pl.i_L0]/2 / p[pl.k_Lagr]], (-500,200), p)
     sol_pl = solve(prob_pl, Vern7(), reltol=1e-5) # litterfall with high accuracy
     plf = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl, t1, t2);
-    Plots.plot(sol_pl, tspan=(-1.5,-1), vars=[pl.i_L, pl.i_L_annual, pl.i_Lagr])
+    #Plots.plot(sol_pl, tspan=(-1.5,-1), vars=[pl.i_L, pl.i_L_annual, pl.i_Lagr])
     #
     # repeat with annually averaged litter input - here without fake
     # ps_plse = ProblemParSetter(plse, (pl.share_autumn, pl.Lagr))
@@ -148,7 +148,8 @@ sim_u0steady = () -> begin
     tspan_spinup = (-800.0,0.0)
     #@named ssp0 = plant_sesam_system(se,plf)
     #
-    @named ssp0 = plant_sesam_system(se,plf_ann)
+    @named ssp0 = plant_sesam_system(se,plf_ann)  # include Enzyemes in u0, use se
+    #@named ssp0 = plant_sesam_system(ss,plf_ann)
     prob0 = ODEProblem(ssp0, u00, tspan_spinup, p)
     # pss_tmp = ProblemParSetter(ssp0, (pl.share_autumn, pl.Lagr))
     # prob0s = update_statepar(pss_tmp, (0.0, 0.0), prob0)
@@ -210,9 +211,9 @@ end
 
 # first both seam3 and sesam3 with fluctuating litter input
 sol = variants[findfirst(variants.label .== "seam_seasonal"),:sol] = sol_seam3f = 
-    solve(probe, solver; tspan, reltol=1e-5, unstable_check=check_unstable_e);
+    solve(probe, solver; reltol=1e-5, unstable_check=check_unstable_e);
 sol = variants[findfirst(variants.label .== "sesam_seasonal"),:sol] = sol_sesam3f = 
-    solve(probs, solver; tspan, reltol=1e-5, unstable_check=check_unstable_s);
+    solve(probs, solver; reltol=1e-5, unstable_check=check_unstable_s);
 
 i_inspect_instability = () -> begin  
     probi = remake(probe, u0 = sol[end])
@@ -276,9 +277,9 @@ probe_ann = ODEProblem(sep_ann, u0, tspan, p)
 probs_ann = ODEProblem(ssp_ann, u0, tspan, p)
 
 sol = variants[findfirst(variants.label .== "seam_annual"),:sol] = sol_seam3s = 
-    solve(probe_ann, solver; tspan, abstol=1e-8);
+    solve(probe_ann, solver; abstol=1e-8);
 sol = variants[findfirst(variants.label .== "sesam_annual"),:sol] = sol_sesam3s = 
-    solve(probs_ann, solver; tspan, abstol=1e-8);
+    solve(probs_ann, solver; abstol=1e-8);
 
 
 
@@ -385,25 +386,34 @@ float_to_month = x -> ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oc
 
 # include("cairo_makie_util.jl") # moved to MTKHelpers
 
-fig, ax = pdf_figure(xlabel = "Time", ylabel="enzyme pool E_R (g/m2)");
+size7 = cm2inch.((8.3,7.0))
+
+fig, ax = pdf_figure(size7, xlabel = "Time", ylabel="enzyme pool E_R (g/m2)");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
 ax.xticks = [-2.0, -1.5, -1, -0.5, 0.0]
 ax.xtickformat = xs -> [float_to_month(x) for x in xs]
 display(fig)
 save(joinpath(figpath,"fluct_E_R.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
+fig, ax = pdf_figure(size7, xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
 ts = (-5.0,min(5.0,maximum(sol_seam3f.t)))
 series_sol!(ax, sol_seam3f, [pl.i_L, pl.i_L_annual], tspan=ts, labels=["seasonal","annual"], linewidth=0.8)
 axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
 display(fig)
 save(joinpath(figpath,"fluct_litterinput.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
+fig, ax = pdf_figure(size7, xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
 plotm_vars!(ax, [s.leach_N], (-5,5); variants = variants[[1,3,4],:], legend_position=:lt)
+#plotm_vars!(ax, [s.leach_N], (-5,15); variants = variants[[1,3,4],:], legend_position=:lt)
 save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = pdf_figure(xlabel = "Time", ylabel="normalized value");
+# fig, ax = pdf_figure(xlabel = "Time (yr)", ylabel="N limitation (g/g)");
+# plotm_vars!(ax, [s.lim_N], (-5,15); variants = variants[[1,3,4],:], legend_position=:lt)
+# #display(fig)
+# save(joinpath(figpath,"fluct_Nlim.pdf"), fig, pt_per_unit = 1)
+
+
+fig, ax = pdf_figure(size7, xlabel = "Time", ylabel="normalized value");
 ts = (-2.3, -1.3)
 cols = Makie.current_default_theme().palette.color[];
 max_i_Lagr = maximum(sol_pl[pl.i_Lagr][sol_pl.t .< 0])

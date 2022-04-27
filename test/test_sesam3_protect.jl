@@ -84,7 +84,7 @@ tspan = (0.0,200.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3_protect = solve(prob; tspan);
+sol = sol_sesam3_protect = solve(prob);
 
 i_plot = () -> begin
     #using Plots
