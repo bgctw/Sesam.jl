@@ -6,6 +6,7 @@ using MTKHelpers
 
 
 @testset "sesam3" begin
+    #include("test/test_sesam3.jl")        
     include("test_sesam3.jl")        
 end;
 
@@ -14,6 +15,7 @@ end;
 end;
 
 @testset "sesam3_CN" begin
+    #include("test/test_sesam3CN.jl")        
     include("test_sesam3CN.jl")        
 end;
 

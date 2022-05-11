@@ -28,7 +28,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP + ϵ_tvr*tvr_B/β_PB + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        # assume that proportion of s_EP to biomineralizing L is 
+        # assume that proportion of s_EP (plant P enzyme production flux) to biomineralizing L is 
         # proportional to potential biomineralization flux
         pL_sEP ~ k_LP*L_P/(k_LP*L_P + k_RP*R_P),
         dec_LP ~ k_LP * L_P * (α_LP*syn_Enz + pL_sEP*s_EP)/(k_mN_L + α_LP*syn_Enz + pL_sEP*s_EP),
@@ -60,12 +60,12 @@ function get_revenue_eq_sesam3CNP(sP)
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sP
     @unpack β_PL, β_PR, β_PEnz = sP
     @unpack α_LP, α_RP, dec_LP, dec_RP, dec_RPPlant, dec_LPPlant = sP
-    @unpack u_immPPot, u_PlantP = sP
+    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
     sts = @variables (begin
         α_LT(t), α_RT(t),
         α_LPT(t), α_RPT(t),
         syn_Enz_w(t), 
-        p_uPmic(t),
+        p_uPmic(t), p_uNmic(t), p_oPmic(t), p_oNmic(t), 
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_LP(t), return_RP(t), revenue_LP(t), revenue_RP(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
@@ -75,12 +75,17 @@ function get_revenue_eq_sesam3CNP(sP)
     @variables w_C(t), w_N(t), w_P(t)
     eqs = [
         syn_Enz_w ~ syn_Enz*(w_C + w_N/β_NEnz + w_P/β_PEnz),
-        return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
-        return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
+        # return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
+        # return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
+        return_L ~ dec_L * (w_C + w_N/β_NL*p_oNmic + w_P/β_PL*p_oPmic), 
+        return_R ~ dec_R * (w_C + w_N/β_NR*p_oNmic + w_P/β_PR*p_oPmic), 
         # return of enzymes produced in addition to that of plants
         # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
         # dec_LP is already in P units, no need to devide by β_P
         p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
+        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
         return_LP ~ (dec_LP - dec_LPPlant) * p_uPmic * w_P, 
         return_RP ~ (dec_RP - dec_RPPlant) * p_uPmic * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),

@@ -134,8 +134,10 @@ end
 function get_revenue_eq_sesam3CN(sN)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sN
+    @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
+        p_uNmic(t), p_oNmic(t),         
         invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
         revenue_sum(t)
@@ -143,10 +145,14 @@ function get_revenue_eq_sesam3CN(sN)
     # need to be defined in coupled component:
     @variables w_C(t), w_N(t)
     eqs = [
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
         invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
         invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
-        return_L ~ dec_L * (w_C + w_N/β_NL), 
-        return_R ~ dec_R * (w_C + w_N/β_NR), 
+        # return_L ~ dec_L * (w_C + w_N/β_NL), 
+        # return_R ~ dec_R * (w_C + w_N/β_NR), 
+        return_L ~ dec_L * (w_C + w_N/β_NL*p_oNmic), 
+        return_R ~ dec_R * (w_C + w_N/β_NR*p_oNmic),         
         revenue_L ~ return_L / invest_L,
         revenue_R ~ return_R / invest_R,
         revenue_sum ~ revenue_L + revenue_R,
@@ -166,6 +172,7 @@ function sesam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N(n
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sN
+    @unpack u_immNPot, u_PlantN, ν_N = sN    
     sts = @variables (begin
         C_synBN(t), 
         C_synBmC(t), C_synBmN(t),
