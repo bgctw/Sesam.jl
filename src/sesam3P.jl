@@ -10,23 +10,26 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         u_PPot(t), P_synBP(t), M_ImbP(t), 
         β_PL(t), β_PR(t),
         leach_P(t),
+        resorp_P(t), β_PBtvr(t),
         α_LP(t), 
         α_RP(t),
         dec_LP(t), dec_RP(t), dec_LPPlant(t), dec_RPPlant(t),
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
-        s_EP(t), pL_sEP(t) # synthesis of E_LP adn E_RP enzymes by plants
+        s_EP(t), pL_sEP(t), # synthesis of E_LP adn E_RP enzymes by plants
+        SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t)
     end)
-    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP 
+    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP ρ_PBtvr=0.0
 
-    @unpack L, R, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
+    @unpack L, R, B, SOC, SON, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, tvr_B0, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
+    @unpack β_NB, β_Ni, L_N, R_N = sN
     @unpack k_mN_L, k_mN_R = sN
 
     eqs = [
         β_PL ~ L/L_P, β_PR ~ R/R_P,
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP + i_L/β_Pi,
-        D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP + ϵ_tvr*tvr_B/β_PB + (1-κ_E)*tvr_Enz/β_PEnz,
+        D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP + ϵ_tvr*tvr_B/β_PBtvr + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
         # assume that proportion of s_EP (plant P enzyme production flux) to biomineralizing L is 
         # proportional to potential biomineralization flux
@@ -41,16 +44,27 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         dI_P ~ i_IP - u_PlantP - leach_P  + dec_RP + dec_LP + Φ_P,
         leach_P ~ l_P*I_P,
         Φ_P ~ Φ_Pu + Φ_PB + Φ_Ptvr,
-        Φ_Ptvr ~ r_tvr/β_PB,
+        Φ_Ptvr ~ r_tvr/β_PBtvr,
         Φ_Pu ~ (1-ν_P) * u_POM,
         # dec_RP is biomineralization - cleaved P is all mineralized
         # u_POM is from depolymerizing - only a fraction ν_P is mineralized
-        u_PPot ~ ν_P * u_POM + u_immPPot,
+        u_PPot ~ ν_P * u_POM + u_immPPot + resorp_P,
         u_POM ~ dec_L/β_PL + dec_R/β_PR + κ_E*tvr_Enz/β_PEnz,
         u_immPPot ~ i_BP * I_P,
         P_synBP ~ u_PPot - syn_Enz/β_PEnz,
         M_ImbP ~ u_PPot - (syn_B/β_PB + syn_Enz/β_PEnz),
         Φ_PB ~ M_ImbP - u_immPPot,
+        # make sure ρ_PBtvr >= 0
+        resorp_P ~ ρ_PBtvr * tvr_B0/β_PB,
+        β_PBtvr ~ tvr_B / (tvr_B0/β_PB - resorp_P),
+        # observables for diagnostic output
+        SOP ~ L_P + R_P + B/β_PB,
+        β_PSOM ~ SOC/SOP,
+        β_NPSOM ~ SON/SOP,
+        β_NPB ~ β_PB/β_NB, # N:P of microbial biomass
+        β_NPi ~ β_Pi/β_Ni, # N:P of litter inputs
+        β_NPL ~ L_N/L_P,
+        β_NPR ~ R_N/R_P,
         ]
     extend(ODESystem(eqs, t, sts, ps; name), sN)
 end
@@ -170,8 +184,12 @@ Here the stable C/N ratio is computed based on given parameterization.
 """
 function calculate_β_PR_sesam3(p,s)
     w_REnz = p[s.a_E]*(1-p[s.κ_E]) # a_E (1-κ_E) B
-    w_RB = p[s.ϵ_tvr]*p[s.τ]       # τ ϵ_tvr B
-    β_PR = 1/((w_REnz/p[s.β_PEnz] + w_RB/p[s.β_PB])/(w_REnz + w_RB))
+    w_RBtvr = p[s.ϵ_tvr]*p[s.τ]       # τ ϵ_tvr B
+    # if ρ is not in parameter dictionary, its default is zero
+    ρ_CBtvr = haskey(p, s.ρ_CBtvr) ? p[s.ρ_CBtvr] : 0.0
+    ρ_PBtvr = haskey(p, s.ρ_PBtvr) ? p[s.ρ_PBtvr] : 0.0
+    β_PBtvr = p[s.β_PB] * (1-ρ_CBtvr)/(1-ρ_PBtvr)
+    β_PR = 1/((w_REnz/p[s.β_PEnz] + w_RBtvr/β_PBtvr)/(w_REnz + w_RBtvr))
 end
 
 

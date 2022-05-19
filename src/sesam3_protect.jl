@@ -7,12 +7,13 @@ function sesam3C_protect(;name, k_N=60.0)
     @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
     @parameters k_L  k_R  k_mN_L k_mN_R k_N=k_N
     @parameters α_R0
+    @parameters ρ_NBtvr = 0.0 # used in N component, only relevant for variants implementing microbial nutrient resorption
     @parameters K_eqR=1e-3 Q_max=10_000.0
 
     @variables (begin
         B(t),  L(t),   R(t),  cumresp(t), Ra(t), # accessible portion of R
         dB(t), dL(t), dR(t), r_tot(t),
-        syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t),
+        syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t), tvr_B0(t),
         E_L(t), E_R(t),
         dec_LPot(t), dec_L(t), dec_RPot(t),
         dec_R(t), u_C(t),
@@ -33,6 +34,7 @@ function sesam3C_protect(;name, k_N=60.0)
         syn_Enz ~ a_E*B, tvr_Enz ~ syn_Enz,
         r_M ~ m*B,
         tvr_B ~ τ*B,
+        tvr_B0 ~ tvr_B, # used in N component, differs from tvr_B in microbila nutrient resorption variants
         dec_LPot ~ k_L * L,
         dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN_L + α_L*syn_Enz),
         # the next two lines are different from sesam3
