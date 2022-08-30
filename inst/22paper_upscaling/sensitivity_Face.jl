@@ -2,11 +2,13 @@
 # C input
 
 using Sesam
+#push!(LOAD_PATH, expanduser("~/julia/scimltools/")) # access local package repo
 using ModelingToolkit, DifferentialEquations
 using DataFrames, Tables
 using Distributions
 using Chain
 using MTKHelpers
+import ComponentArrays as CA
 
 tspinup = 500.0; tface=100.0
 #@named s = sesam3(use_seam_revenue=true)
@@ -141,9 +143,9 @@ names_opt_all = df_dist.par
 names_opt = copy(names_opt_all)
 
 
-ps = ProblemParSetter(sp, names_opt)
-popt = get_paropt_labeled(ps, prob0)
-prob = update_statepar(ps, popt, prob0)
+pset = ProblemParSetter(sp, CA.Axis(symbol.(names_opt)))
+popt = get_paropt_labeled(pset, prob0)
+prob = update_statepar(pset, popt, prob0)
 # upd! = SystemParUpdater(collect(names_opt), sp)
 # prob = deepcopy(prob0)
 # popt0 = getindex.(Ref(p), names_opt) 
@@ -243,9 +245,9 @@ end
 names_omit = []
 names_opt = setdiff(names_opt_all, names_omit)
 #upd! = SystemParUpdater(collect(names_opt), sp)
-ps = ProblemParSetter(sp, names_opt)
-popt0 = get_paropt_labeled(ps, prob0)
-prob = update_statepar(ps, popt0, prob0)
+pset = ProblemParSetter(sp, CA.Axis(symbol.(names_opt)))
+popt0 = get_paropt_labeled(pset, prob0)
+prob = update_statepar(pset, popt0, prob0)
 
 #N = 10 # for testing setting y
 #N = 50_000 * 8 # 50_000 took about 1/2 hour one night but sobolowen takes more
@@ -320,7 +322,7 @@ println("computing $nsamp samples.")
 for i_samp in 1:nsamp
     popt = q_design[i_samp,:]
     #upd!(prob0, popt)
-    prob = update_statepar(ps, popt, prob0)
+    prob = update_statepar(pset, popt, prob0)
     sol_p = solve(prob; saveat);
     #plot!(sol_p, vars=[s.L + s.R], tspan=(-20,tface))
     if sol_p.retcode == :Success 
@@ -482,8 +484,8 @@ end;
 # const CM = CairoMakie
 # CM.scatter(qs.β_NB, df_som_changes.com0, color=qs.β_NEnz)
 is = sample(1:N, 2000)
-df_q = DataFrame(q_design, collect(strip_namespace.(paroptsyms(ps))))
-df_qs = DataFrame(q_design[is,:], collect(strip_namespace.(paroptsyms(ps))))
+df_q = DataFrame(q_design, collect(strip_namespace.(symbols_paropt(pset))))
+df_qs = DataFrame(q_design[is,:], collect(strip_namespace.(symbols_paropt(pset))))
 df_s = df_som_changes[is,:]
 scatter(df_qs.k_R, df_s.csom0, zcolor=df_qs.ϵ_tvr, xlab="k_R (1/yr)", ylab="SOM stocks (g/m2)", label=nothing, colorbar_title = " \nϵ_tvr (g/g)", right_margin = 6Plots.mm)
 
@@ -503,7 +505,7 @@ end
 i_inspect_Ndeposition = () -> begin
     minb, maxb = extrema(df_q.β_NB)
     x = range(minb, stop=maxb, length=12)
-    ps_β_NB = ProblemParSetter(sp, (s.β_NB,))
+    ps_β_NB = ProblemParSetter(sp, CA.Axis(s.β_NB,))
     prob_ndep = prob0 # without N deposition
     ndep = 0.7 # 7 kg/ha/yr Hueso11 7 to 12 kg/ha/yr 
     prob_ndep = update_statepar(ProblemParSetter(sp, (pl.i_IN0,)),(ndep,), prob0)
@@ -515,7 +517,7 @@ i_inspect_Ndeposition = () -> begin
     #scs0 = DataFrame(som_change.(solps)); scs0[!,:ndep] .= 0.0
     scs = DataFrame(som_change.(solps)); scs0[!,:ndep] .= ndep
 
-    label_par(ps,prob_ndep.p)
+    label_par(pset,prob_ndep.p)
 
     plot(x, scs.csom0)
     plot!(x, scs0.csom0, label = "ndep=0")
@@ -529,7 +531,7 @@ end
 i_inspect_high_csom0 = () -> begin
     # what parameters yield the high initial stocks with low CN_B?
     using LinearAlgebra
-    popt1 = get_paropt_labeled(ps, update_statepar(psx, (x[1],), prob_ndep))
+    popt1 = get_paropt_labeled(pset, update_statepar(psx, (x[1],), prob_ndep))
     i_close = argmin(mapslices(pi -> norm(pi .- popt1), q_design; dims=2)[:,1])
     popt = q_design[i_close,:]
     df_tmp = DataFrame(transpose(hcat(popt0s, popt)), parsymbol.(names_opt))
@@ -543,14 +545,14 @@ i_inspect_high_csom0 = () -> begin
     df_som_changes[im,:]
     popt1 = df_q[im,:]
     #df_qs_low = subset(df_qs, :β_NB => ByRow(<=(10)))
-    probp = update_statepar(ps, collect(popt1), prob0)
+    probp = update_statepar(pset, collect(popt1), prob0)
     solp = solve(probp)
     som_change(solp)
 
     ps_β_NB = ProblemParSetter(sp, (s.β_NB,))
     probp2 = update_statepar(ps_β_NB, (9.94,), prob0)
-    popt2 = get_paropt_labeled(ps, probp2)
-    label_par(ps,probp2.p)
+    popt2 = get_paropt_labeled(pset, probp2)
+    label_par(pset,probp2.p)
     solp2 = solve(probp2)
     som_change(solp2)
 
