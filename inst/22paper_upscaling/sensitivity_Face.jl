@@ -286,15 +286,16 @@ get_sample <- function(){
 sensObject <- soboltouati(NULL,get_sample(), get_sample(), nboot=100) # will be used down
 # sobolowen returned fluctuating results on repeated sample matrices
 #sensObject <- sobolowen(NULL,get_sample(), get_sample(), get_sample(), nboot=100) 
-saveRDS(sensObject, paste0("sensObject_",N,"_",δ_cp*100,".rds"))
+saveRDS(sensObject, file.path("tmp",paste0("sensObject_",N,"_",δ_cp*100,".rds")))
 str(sensObject$X)
 data.matrix(sensObject$X)
 """);
 
 R"""
 δ_cp = $(δ_cp)
+N = $(N)
 library(sensitivity)
-sensObject = readRDS(paste0("sensObject_",N,"_",δ_cp*100,".rds"))
+sensObject = readRDS(file.path("tmp",paste0("sensObject_",N,"_",δ_cp*100,".rds")))
 str(sensObject$X)
 """
 cp_design
