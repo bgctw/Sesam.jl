@@ -1,0 +1,3 @@
+[sysimage]
+exclude=["MTKHelpers","Sesam"]   
+execution_files=["precompile_execution.jl"]
