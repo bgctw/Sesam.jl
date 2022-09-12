@@ -1,4 +1,6 @@
 [deps]
+AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
+CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 ComponentArrays = "b0b7db55-cfe3-40fc-9ded-d10e2dbeff66"
 DifferentialEquations = "0c46a032-eb83-5123-abaf-570d42b7fbaa"
 DistributionFits = "45214091-1ed4-4409-9bcf-fdb48a05e921"
@@ -7,4 +9,5 @@ MTKHelpers = "2725b469-bb7f-4d1a-ba58-ced332a70bc7"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
 OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 Sesam = "c01ae2c5-a5ee-457e-8c37-ca399e54bec2"
+SubglobalSensitivityAnalysis = "e5cc3859-2e89-4a16-aeca-5b21eb6ba5f1"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"

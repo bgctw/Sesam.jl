@@ -1,0 +1,15 @@
+using Sesam
+
+cols = (:par, :dType, :mode, :upper)
+parmsModeUpperRows = [
+     (:a, LogNormal, 0.001*365 , 0.005*365),
+     (:b, LogitNormal, 0.3 , 0.9),
+]
+df_dist = rename!(DataFrame(columntable(parmsModeUpperRows)), collect(cols))
+
+@testset "fitDistr" begin
+    #st = first(states(sp))
+    for st in states(sp)
+        @test all(sol[st] .>= 0.0) 
+    end
+end;
