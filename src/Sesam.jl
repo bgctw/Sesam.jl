@@ -6,7 +6,8 @@ using DistributionFits: fit_mode_flat
 using Distributions
 using MTKHelpers
 
-export plant_const, plant_face, plant_face_fluct, plant_face_fluct_fake,
+export plant_const, plant_const_balanced, 
+    plant_face, plant_face_fluct, plant_face_fluct_fake,
     sesam3, seam3, sesam3CN, plant_sesam_system,
     sesam3_protect, sesam3_revMM
 export calculate_β_NR_sesam3, calculate_β_PR_sesam3

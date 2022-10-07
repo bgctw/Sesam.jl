@@ -2,7 +2,7 @@ using Sesam
 using ModelingToolkit, DifferentialEquations
 
 @named s = sesam3()
-@named pl = plant_const()
+@named pl = plant_const_balanced()
 
 @named sp = plant_sesam_system(s,pl)
 states(sp)
@@ -103,7 +103,7 @@ sol = sol_sesam3 = solve(prob, Rodas4());
 #sol = sol_sesam3 = solve(prob, Tsit5(), callback=PositiveDomain(prob.u0));
 
 i_plot = () -> begin
-    #import Plots
+    #import StatsPlots
     ts = tspan
     ts = (2,2.2)
     Plots.plot(sol)
