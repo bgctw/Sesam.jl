@@ -72,7 +72,7 @@ Need to specify parameters
 - `β_Ni0`, `β_Pi0`: C:N and C:P ratio of litter input
 - `i_IN0`, `i_IP0`: external inputs of inorganic N and P (N deposition, weathering)
 optional:
-- `imbalance_N`, `imbalance_P`: to compute 
+- `imbalance_N0`, `imbalance_P0`: to compute 
    `u_PlantNmax = iL0 / β_Ni0 - imbalance_N`: 
    negative for N or P  exported or sequestered in biomass and
    positive for N or P taken up, e.g. from non-modelled deeper soil layers.
@@ -96,19 +96,22 @@ function plant_const_balanced(;name)
     D = Differential(t)
     ps = @parameters (i_L0,  i_IN0,   
         k_PlantN0, β_Ni0, i_IP0, β_Pi0, u_PlantPmax0, k_PlantP0, s_EP0,
-        imbalance_N, imbalance_P)
+        imbalance_N0, imbalance_P0)
     states = @variables (begin
         i_L(t), 
         β_Ni(t), i_IN(t),
         u_PlantNmax(t), k_PlantN(t),
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
-        s_EP(t)
+        s_EP(t),
+        imbalance_N(t), imbalance_P(t)
     end) 
     eqs = [
         i_L ~ i_L0, 
         β_Ni ~ β_Ni0,
         i_IN ~ i_IN0, 
+        imbalance_N ~ imbalance_N0,
+        imbalance_P ~ imbalance_P0,
         u_PlantNmax ~ i_L0 / β_Ni0 - imbalance_N,
         k_PlantN ~ k_PlantN0,
         β_Pi ~ β_Pi0,
@@ -121,8 +124,8 @@ function plant_const_balanced(;name)
         # rate not constrained, to make u_PlantNmax0 effective
         k_PlantN0 => 1.0e3, 
         # imbalance of N and P in biomass: litterfall = root_uptake + imbalance
-        imbalance_N => 0.0, 
-        imbalance_P => 0.0, 
+        imbalance_N0 => 0.0, 
+        imbalance_P0 => 0.0, 
         # rate not constrained
         k_PlantP0 => 1.0e3, 
         # take as much P as provided with litter
