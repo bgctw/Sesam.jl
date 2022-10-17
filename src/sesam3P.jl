@@ -192,6 +192,17 @@ function calculate_β_PR_sesam3(p,s)
     β_PR = 1/((w_REnz/p[s.β_PEnz] + w_RBtvr/β_PBtvr)/(w_REnz + w_RBtvr))
 end
 
+function calculate_β_PR_sesam3(p_sym)
+    # ensure with test that this is the same as with Dictionaries of Symbol.Num
+    # for performance recode rather than converting Nums to Symbols each time
+    w_REnz = p_sym[:s₊a_E]*(1-p_sym[:s₊κ_E]) # a_E (1-κ_E) B
+    w_RBtvr = p_sym[:s₊ϵ_tvr]*p_sym[:s₊τ]       # τ ϵ_tvr B
+    # if ρ is not in parameter dictionary, its default is zero
+    ρ_CBtvr = haskey(p_sym, :s₊ρ_CBtvr) ? p_sym[:s₊ρ_CBtvr] : 0.0
+    ρ_PBtvr = haskey(p_sym, :s₊ρ_PBtvr) ? p_sym[:s₊ρ_PBtvr] : 0.0
+    β_PBtvr = p_sym[:s₊β_PB] * (1-ρ_CBtvr)/(1-ρ_PBtvr)
+    β_PR = 1/((w_REnz/p_sym[:s₊β_PEnz] + w_RBtvr/β_PBtvr)/(w_REnz + w_RBtvr))
+end
 
 
 

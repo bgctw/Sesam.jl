@@ -230,6 +230,16 @@ function calculate_β_NR_sesam3(p,s)
     β_NR = 1/((w_REnz/p[s.β_NEnz] + w_RBtvr/β_NBtvr)/(w_REnz + w_RBtvr))
 end
 
+function calculate_β_NR_sesam3(p_sym)
+    w_REnz = p_sym[:s₊a_E]*(1-p_sym[:s₊κ_E]) # a_E (1-κ_E) B
+    w_RBtvr = p_sym[:s₊ϵ_tvr]*p_sym[:s₊τ]       # τ ϵ_tvr B
+    # β_NBtvr may differ from β_NB because of elemental resorption
+    # if ρ is not in parameter dictionary, its default is zero
+    ρ_CBtvr = (haskey(p_sym, :s₊ρ_CBtvr)) ? p_sym[:s₊ρ_CBtvr] : 0.0
+    ρ_NBtvr = (haskey(p_sym, :s₊ρ_NBtvr)) ? p_sym[:s₊ρ_NBtvr] : 0.0
+    β_NBtvr = p_sym[:s₊β_NB] * (1-ρ_CBtvr)/(1-ρ_NBtvr)
+    β_NR = 1/((w_REnz/p_sym[:s₊β_NEnz] + w_RBtvr/β_NBtvr)/(w_REnz + w_RBtvr))
+end
 
 
 

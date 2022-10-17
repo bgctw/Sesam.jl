@@ -147,3 +147,18 @@ end;
     #include("test/test_sesam3_sol.jl")
     include("test_sesam3_sol.jl")
 end;
+
+@testset "calculate_β_NR_sesam3 symbols" begin
+    β_NR = calculate_β_NR_sesam3(p,s)
+    p_sym = Dict(Symbol(k) => v for (k,v) in p)
+    β_NR2 = calculate_β_NR_sesam3(p_sym)
+    @test β_NR2 == β_NR
+end;
+
+@testset "calculate_β_PR_sesam3 symbols" begin
+    β_PR = calculate_β_PR_sesam3(p,s)
+    p_sym = Dict(Symbol(k) => v for (k,v) in p)
+    β_PR2 = calculate_β_PR_sesam3(p_sym)
+    @test β_PR2 == β_PR
+end;
+
