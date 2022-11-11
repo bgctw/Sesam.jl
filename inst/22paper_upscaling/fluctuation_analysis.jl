@@ -26,25 +26,25 @@ p = pC = Dict(
     #s.k_L => 5.0,       ##<< 1/(x years)   # formerly 1 year
     s.k_R => 1/(40.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
     ss.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
-        # /yr enzyme turnover 60 times a year
+        #  yr^{-1} enzyme turnover 60 times a year
     ss.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
-    # /yr enzyme turnover 60 times a year
+    #  yr^{-1} enzyme turnover 60 times a year
     s.k_N => 60, 
     s.k_m => 0.05, 
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
-    pl.i_L0 => 400.0,         # g/m2 input per year (half NPP)
+    pl.i_L0 => 400.0,         # g m^{-2} input per year (half NPP)
     #pl.β_Ni0 => 25.0,
     pl.β_Ni0 => 30.0,
     #pl.i_IN0 => 0.0,   ##<< input of mineral N,
-    pl.i_IN0 => 0.7,   ##<< 7kg/ha/yr
+    pl.i_IN0 => 0.7,   ##<< 7kg/ha yr^{-1}
     pl.k_Lagr => 12/2, # above ground litter turnover of 2 month
     pl.k_PlantN0 => 100.0, 
     #pl.k_PlantN0 => 2, # try with a lower rate - cannot resupply
     #
     #P from plant model parameters not used in CN-Sesam soil model
     pl.β_Pi0 => Inf, #25*20, ## leaf litter N:P ~20(massratio Kang10)
-    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
+    pl.i_IP0 => Inf, #0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g m^{-2} yr^{-1} Hartmann14 10.1016/j.chemgeo.2013.10.025
     pl.s_EP0 => Inf, # 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux    
     pl.u_PlantPmax0 => Inf, 
     pl.k_PlantP0 => Inf,
@@ -137,7 +137,7 @@ sim_u0steady = () -> begin
         s.E_R => u0C[s.α_R] * p[s.a_E] * u0C[s.B] / (p[s.k_N]),
     )
     u0N = Dict(
-        s.I_N => 0.04, ##<< inorganic pool gN/m2 
+        s.I_N => 0.04, ##<< inorganic pool gN m^{-2} 
         s.L_N => u0C[s.L]/p[pl.β_Ni0],
         s.R_N => u0C[s.R]/calculate_β_NR_sesam3(p,s) #p[s.β_NB],
         )
@@ -168,6 +168,7 @@ u0 = sim_u0steady()
 
 #---------- simulate sesam3 with varying litter inputs
 using CairoMakie, AlgebraOfGraphics
+using LatexString
 import ComponentArrays as CA
 set_aog_theme!()  # to get the consistent colors
 
@@ -178,7 +179,7 @@ variants = @chain Iterators.product((:seam, :sesam),(:seasonal, :annual)) begin
     rename!([:enzyme,:litter])
     leftjoin(DataFrame(enzyme=[:seam, :sesam], linestyle=[:dash, :solid]), on=:enzyme)
     transform(:enzyme => (x -> Makie.current_default_theme().palette.color[][1:length(x)]) => :color)
-    transform(AsTable(Cols(:enzyme,:litter)) => ByRow(t -> "$(t.enzyme)_$(t.litter)") => :label)
+    transform(AsTable(Cols(:enzyme,:litter)) => ByRow(t -> "$(uppercase(string(t.enzyme)))_$(t.litter)") => :label)
 end
 variants[!,:sol] = Vector{Any}(fill(missing,nrow(variants)))
 #typeof(variants.sol)
@@ -288,10 +289,10 @@ sol = variants[findfirst(variants.label .== "sesam_annual"),:sol] = sol_sesam3s 
 
 
 function plot_vars(vars, tspan=tspan; kwargs...)
-    pl = plot(sol_seam3f; tspan=ts, vars=vars, label="seam", linestyle=:dash, kwargs...)
-    plot!(pl, sol_seam3s; tspan=ts, vars=vars, label="seam annual", linestyle=:dash, kwargs...)
-    plot!(pl, sol_sesam3s; tspan=ts, vars=vars, label="sesam annual", kwargs...)
-    plot!(pl, sol_sesam3f; tspan=ts, vars=vars, label="sesam", xlab="time (yr)", kwargs...)    
+    pl = plot(sol_seam3f; tspan=ts, vars=vars, label="SEAM", linestyle=:dash, kwargs...)
+    plot!(pl, sol_seam3s; tspan=ts, vars=vars, label="SEAM annual", linestyle=:dash, kwargs...)
+    plot!(pl, sol_sesam3s; tspan=ts, vars=vars, label="SESAM annual", kwargs...)
+    plot!(pl, sol_sesam3f; tspan=ts, vars=vars, label="SESAM", xlab="Time (yr)", kwargs...)    
 end
 
 
@@ -305,18 +306,18 @@ i_plot_Plots = () -> begin
     #using Plots
     pla = (
         palette = :Dark2_6,
-        dpi = dpi_pub,
-        size = inch2px.(cm2inch.((8.3,7)), dpi_pub),
+        #dpi = dpi_pub,
+        #size = inch2px.(cm2inch.((8.3,7)), dpi_pub),
     )
     ts = (-5.0,min(5.0,maximum(sol_sesam3f.t)))
-    plot(sol_seam3f; tspan=ts, vars=[pl.i_L, pl.i_L_annual], xlab="time (yr)", 
-        ylab="litter input (g/m2/yr)", pla...)
+    plot(sol_seam3f; tspan=ts, vars=[pl.i_L, pl.i_L_annual], xlab="Time (yr)", 
+        ylab=L"Litter input (g m^{-2} yr^{-1})", pla...)
     savefig(joinpath(figpath,"fluct_litterinput.pdf"))
 
-    plot_vars([s.E_R]; ylab="enzyme pool E_R (g/m2)", tspan=(-2,0), legend=:topleft, pla...)
+    plot_vars([s.E_R]; ylab=L"Enzyme pool E_R (g m^{-2})", tspan=(-2,0), legend=:topleft, pla...)
     savefig(joinpath(figpath,"fluct_E_R.pdf"))
 
-    plot_vars([s.leach_N]; ylab="N leaching (g/m2/yr)", tspan=ts, legend=:topleft, pla...)
+    plot_vars([s.leach_N]; ylab=L"N leaching (g m^{-2} yr^{-1})", tspan=ts, legend=:topleft, pla...)
     savefig(joinpath(figpath,"fluct_Nleach.pdf"))
 end
 
@@ -392,21 +393,21 @@ float_to_month = x -> ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oc
 size7 = cm2inch.((8.3,7.0))
 
 import TwPrototypes as TWP
-fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time", ylabel="enzyme pool E_R (g/m2)");
+fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time", ylabel=L"Enzyme pool $E_R$ $(g m^{-2})$");
 plotm_vars!(ax, [s.E_R], (-2,0); variants = variants[[1,2],:], legend_position=:lt)
 ax.xticks = [-2.0, -1.5, -1, -0.5, 0.0]
 ax.xtickformat = xs -> [float_to_month(x) for x in xs]
 display(fig)
 save(joinpath(figpath,"fluct_E_R.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time (yr)", ylabel="litter input (g/m2/yr)");
+fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time (yr)", ylabel=L"Litter input $(g m^{-2} yr^{-1})$");
 ts = (-5.0,min(5.0,maximum(sol_seam3f.t)))
-series_sol!(ax, sol_seam3f, [pl.i_L, pl.i_L_annual], tspan=ts, labels=["seasonal","annual"], linewidth=0.8)
+series_sol!(ax, sol_seam3f, [pl.i_L, pl.i_L_annual], tspan=ts, labels=["Seasonal","Annual"], linewidth=0.8)
 axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
 display(fig)
 save(joinpath(figpath,"fluct_litterinput.pdf"), fig, pt_per_unit = 1)
 
-fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time (yr)", ylabel="N leaching (g/m2/yr)");
+fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time (yr)", ylabel=L"N leaching $(g m^{-2} yr^{-1})$");
 plotm_vars!(ax, [s.leach_N], (-5,5); variants = variants[[1,3,4],:], legend_position=:lt)
 tmpf = function() 
     # for review plot all four variants
@@ -423,7 +424,7 @@ save(joinpath(figpath,"fluct_Nleach.pdf"), fig, pt_per_unit = 1)
 # save(joinpath(figpath,"fluct_Nlim.pdf"), fig, pt_per_unit = 1)
 
 
-fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time", ylabel="normalized value");
+fig, ax = TWP.pdf_figure_axis(size7, xlabel = "Time", ylabel="Normalized value");
 ts = (-2.3, -1.3)
 cols = Makie.current_default_theme().palette.color[];
 max_i_Lagr = maximum(sol_pl[pl.i_Lagr][sol_pl.t .< 0])
@@ -446,31 +447,31 @@ save(joinpath(figpath,"fluct_litter_delay_composition.pdf"), fig, pt_per_unit = 
 
 
 i_plot = () -> begin
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="R (g/m2)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel=L"R $(g m^{-2})$");
     plotm_vars!(ax, [s.R], (first(tspan),0); variants = variants[[1,2,3,4],:], legend_position=:lt)
     # solved: after 200 years still increasing?
     #    slightly higher annual integrated litter input -> avoid steep slopes + reltol in solver
 
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="R (g/m2)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel=L"R $(g m^{-2})$");
     plotm_vars!(ax, [s.R], (-5,0); variants = variants[[1,2,3,4],:], legend_position=:lt)
 
 
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="I_N (g/m2)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel=L"$I_N$ $(g m^{-2})$");
     plotm_vars!(ax, [s.I_N], (-5,0); variants = variants[[1,2,3,4],:], legend_position=:lt)
     # consistently higher than with constant litter input
 
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="α_L (1/1)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel=L"α_L (1/1)");
     plotm_vars!(ax, [s.α_L], (-1,0); variants = variants[[1,2,3],:], legend_position=:lb)
     # annual cycle: after winter shiftring towards R and in autum rapidly shifting towards L 
 
     # plant uptake matches maximum
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="plant uptake (g/m2/yr)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel=L"Plant uptake ($g m^{-2} yr^{-1}$)");
     series_sol!(ax, sol_sesam3f, [s.u_PlantNmax, s.u_PlantN], tspan=(-2,2), linewidth=0.8)
     axislegend(ax, unique=true, valign = :top, halign=:left, margin=(2,2,2,2))
     display(fig)
 
     # also the same N pool
-    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="CN of R pool (g/g)");
+    fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)", ylabel="C:N of R pool (g/g)");
     plotm_vars!(ax, [s.R/s.R_N], (-1,0); variants = variants[[2,4],:], legend_position=:lb)
 
 
@@ -478,27 +479,30 @@ i_plot = () -> begin
     plot(sol, vars=[s.R])
     ts = tspan
     ts = (-5.0,min(5.0,maximum(sol_sesam3f.t)))
-    plot(sol_seam3f; tspan=ts, vars=[pl.i_L, pl.i_L_annual], xlab="time (yr)", 
-        ylab="litter input (g/m2/yr)", pla...)
+    plot(sol_seam3f; tspan=ts, vars=[pl.i_L, pl.i_L_annual], 
+        #xlab="Time (yr)", 
+        #ylab="Litter input (g m^{-2} yr^{-1})",
+        #pla...
+        )
     
     #plot(sol, tspan=ts, vars=[pl.Lagr])
         
 
-    plot_vars([s.R]; ylab="residue pool R (g/m2)", tspan=ts, pla...)
-    #plot_vars([s.dR]; ylab="change residue pool dR (g/m2)", tspan=ts)
-    plot_vars([s.L]; ylab="litter pool L (g/m2)", tspan=ts, pla...)
-    plot_vars([s.L+s.R]; ylab="SOM stocks (L+R) (g/m2)", tspan=ts, pla...)
-    plot_vars([s.r_tot]; ylab="respiration (g/m2/yr)", tspan=ts, pla...)
-    plot_vars([s.leach_N]; ylab="N leaching (g/m2/yr)", tspan=ts, legend=:bottomright, pla...)
+    plot_vars([s.R]; ylab=L"Residue pool R ($g m^{-2}$)", tspan=ts, pla...)
+    #plot_vars([s.dR]; ylab="change residue pool dR (g m^{-2})", tspan=ts)
+    plot_vars([s.L]; ylab=L"Litter pool L (g m^{-2})", tspan=ts, pla...)
+    plot_vars([s.L+s.R]; ylab=L"SOM stocks (L+R) (g m^{-2})", tspan=ts, pla...)
+    plot_vars([s.r_tot]; ylab=L"Respiration (g m^{-2} yr^{-1})", tspan=ts, pla...)
+    plot_vars([s.leach_N]; ylab="N leaching (g m^{-2} yr^{-1})", tspan=ts, legend=:bottomright, pla...)
     plot_vars([s.α_R]; ylab="enzyme allocation to E_R (g/g)", tspan=ts, pla...)
-    plot_vars([s.E_R]; ylab="residue enzyme pool E_R (g/m2)", tspan=ts, pla...)
+    plot_vars([s.E_R]; ylab="residue enzyme pool E_R (g m^{-2})", tspan=ts, pla...)
 
-    plot(sol_sesam3f, vars = [pl.i_L, pl.i_L_annual]; ylab="litter input (g/m2/yr)", 
+    plot(sol_sesam3f, vars = [pl.i_L, pl.i_L_annual]; ylab="litter input (g m^{-2} yr^{-1})", 
         tspan=ts, xlab="time (yr)")
     
     ts = (-2,0)
     # almost no difference between steady enzyme and explicit enzyme
-    plot_vars([s.E_R]; ylab="residue enzyme pool E_R (g/m2)", tspan = ts, ylim=(0.065,0.075))
+    plot_vars([s.E_R]; ylab="residue enzyme pool E_R (g m^{-2})", tspan = ts, ylim=(0.065,0.075))
 
     ts = (-2,5)
     ts = (-1,1)
