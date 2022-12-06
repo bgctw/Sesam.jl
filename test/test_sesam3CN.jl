@@ -9,8 +9,14 @@
 #   ], t; name=:sp), s, pl)
 #sp = structural_simplify(sp)
 
+
 @named sp = plant_sesam_system(s,pl)
 states(sp)
+
+
+sr = sesam3CN(;use_proportional_revenue=true, name=:s)
+@named spr = plant_sesam_system(sr,pl)
+
 
 p = pC = Dict(
     s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
@@ -72,6 +78,8 @@ u0 = merge(u0C, u0N)
 #u0[s.R]/u0[s.R_N] # smaller p[s.β_NB]
 
 tspan = (0.0,100.0)    
+#tspan = (0.0,1e5)    
+#tspan = (0.0,10.0)    
 
 #prob = ODEProblem(sp,[t for t in u0], tspan, [t for t in p])
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
@@ -79,10 +87,20 @@ prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
 sol = sol_sesam3CN = solve(prob);
 
+probr = ODEProblem(spr, u0, tspan, p)
+solr = solve(probr);
+
 i_plot = () -> begin
     #using Plots
+    ts = (0,2)
+    ts = extrema(sol.t)
     plot(sol)
-    plot(sol, vars=[s.R])
+    plot(sol, vars=[s.α_R], tspan=ts)
+    plot!(solr, vars=[s.α_R], tspan=ts)
+    plot(sol, vars=[s.B], tspan=ts)
+    plot!(solr, vars=[s.B], tspan=ts)
+    plot(sol, vars=[s.R], tspan=ts)
+    plot(sol, vars=[s.du_L, s.du_R], tspan=ts)
     Plots.plot(sol, vars=[s.β_NBtvr, p[s.β_NB] * (1-p[s.ρ_CBtvr])/(1-p[s.ρ_NBtvr])], tspan=ts)
     calculate_β_NR_sesam3(p,s), sol[s.β_NR,end]
 end

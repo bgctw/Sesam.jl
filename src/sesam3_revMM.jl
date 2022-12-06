@@ -160,7 +160,7 @@ function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=ses
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
         D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
-        D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
+        D(α_R) ~ dα_R #, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
         ]
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
 end
@@ -172,6 +172,7 @@ function get_revenue_eq_seam(sN)
     # needs dec_RPot, which is specific to revMM decomposition formulation
     @parameters t 
     @unpack dec_LPot, dec_RPot, k_mN_L, k_mN_R, syn_Enz, α_L, α_R, β_NL, β_NR = sN
+    @unpack τ, syn_B, B = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
         rev_LC(t), rev_RC(t), rev_LN(t), rev_RN(t), 
@@ -188,6 +189,7 @@ function get_revenue_eq_seam(sN)
         α_RN ~ rev_RN/(rev_RN + rev_LN),
         α_RT ~ (w_C * α_RC + w_N * α_RN)/(w_C + w_N),
         α_LT ~ 1.0 - α_RT,
+        dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
     ]
     (;eqs, sts)
 end

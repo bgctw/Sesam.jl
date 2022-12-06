@@ -11,6 +11,7 @@ Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 IfElse = "615f187c-cbe4-4ef1-ba3b-2fcf58d6d173"
 MTKHelpers = "2725b469-bb7f-4d1a-ba58-ced332a70bc7"
 ModelingToolkit = "961ee093-0014-501f-94e3-6117800e7a78"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]

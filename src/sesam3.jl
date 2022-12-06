@@ -148,7 +148,7 @@ end
 
 function get_revenue_eq_sesam3CN(sN)
     @parameters t 
-    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sN
+    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz, τ, syn_B, B = sN
     @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
@@ -158,7 +158,7 @@ function get_revenue_eq_sesam3CN(sN)
         revenue_sum(t)
     end)
     # need to be defined in coupled component:
-    @variables w_C(t), w_N(t)
+    @variables w_C(t), w_N(t), dα_R(t)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
@@ -173,6 +173,7 @@ function get_revenue_eq_sesam3CN(sN)
         revenue_sum ~ revenue_L + revenue_R,
         α_LT ~ revenue_L/revenue_sum,
         α_RT ~ revenue_R/revenue_sum,
+        dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
         # auxilary for plotting
         # invest_Ln ~ invest_L/(invest_L + invest_R),
         # invest_Rn ~ invest_R/(invest_L + invest_R),
@@ -182,7 +183,53 @@ function get_revenue_eq_sesam3CN(sN)
     (;eqs, sts)
 end
 
-function sesam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N(name=:sN))
+function get_revenue_eq_sesam3CN_deriv(sN)
+    @parameters t 
+    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz = sN
+    @unpack τ, syn_B, B, k_mN_L, k_mN_R = sN
+    @unpack u_immNPot, u_PlantN, ν_N = sN
+    sts = @variables (begin
+        p_uNmic(t), p_oNmic(t),         
+        d_L(t), d_R(t),
+        du_L(t), du_R(t), 
+        mdu(t), dα_R(t)
+    end)
+    # need to be defined in coupled component:
+    @variables w_C(t), w_N(t)
+    eqs = [
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
+        d_L ~ dec_LPot * (w_C + w_N/β_NL*p_oNmic), 
+        d_R ~ dec_LPot * (w_C + w_N/β_NR*p_oNmic),         
+        du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz),
+        du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz),
+        # TODO exclude enzymes from the mix
+        #mdu ~ (du_L + du_R)/2,
+        #mdu ~ compute_mean_du(SA[du_L, du_R], SA[α_L, α_L]),
+        mdu ~ compute_mean_du_LR(du_L, α_L, du_R, α_R),
+        dα_R ~ (τ + abs(syn_B)/B)*max((du_R - mdu)/mdu, -α_R)
+        ]
+    (;eqs, sts)
+end
+
+function compute_mean_du_LR(du_L, α_L, du_R, α_R)
+    # mdu = sum(du)/length(du)
+    # mdu_prev = mdu+1# something different
+    # while  mdu_prev != mdu
+    #     is_alloc = (du .- mdu) .>= alpha .* -mdu
+    #     mdu_prev = mdu
+    #     mdu = sum(du[is_alloc])/(sum(is_alloc) + sum(alpha[.!is_alloc]))
+    # end
+    # mdu
+    mdu = (du_L + du_R)/2
+    mdu1 = IfElse.ifelse( (du_L - mdu) <= -α_L * mdu, du_R,
+        IfElse.ifelse( (du_R - mdu) <= -α_R * mdu, du_L, mdu)
+    )
+    mdu1
+end
+
+function sesam3CN(;name, δ=40.0, max_w=12, 
+    use_seam_revenue=false, use_proportional_revenue=false, sN=sesam3N(name=:sN))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sN
@@ -195,7 +242,8 @@ function sesam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N(n
     end)
     ps = @parameters δ=δ
     eqs_rev, sts_rev = use_seam_revenue ? 
-        get_revenue_eq_seam(sN) : get_revenue_eq_sesam3CN(sN)
+        get_revenue_eq_seam(sN) : use_proportional_revenue ?
+        get_revenue_eq_sesam3CN(sN) : get_revenue_eq_sesam3CN_deriv(sN)
     @variables α_LT(t) α_RT(t)
     eqs = [
         C_synBN ~ β_NB*N_synBN,
@@ -204,10 +252,10 @@ function sesam3CN(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N(n
         w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
         w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
-        # α_LT, α_RT by get_revenue_eq_X
+        # α_LT, α_RT, dα_R by get_revenue_eq_X
         #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         α_L ~ 1 - α_R,
-        D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
+        D(α_R) ~ dα_R, 
         ]
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
 end

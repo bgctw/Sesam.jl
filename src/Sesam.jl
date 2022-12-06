@@ -5,6 +5,7 @@ using ModelingToolkit, DifferentialEquations, IfElse
 using DistributionFits: fit_mode_flat
 using Distributions
 using MTKHelpers
+using StaticArrays
 
 export plant_const, plant_const_balanced, 
     plant_face, plant_face_fluct, plant_face_fluct_fake,
