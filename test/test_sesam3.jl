@@ -1,4 +1,5 @@
 using Sesam
+import Sesam as CP
 using ModelingToolkit, DifferentialEquations
 
 @named s = sesam3()
@@ -6,6 +7,10 @@ using ModelingToolkit, DifferentialEquations
 
 @named sp = plant_sesam_system(s,pl)
 states(sp)
+
+sr = sesam3(;use_proportional_revenue=true, name=:s)
+@named spr = plant_sesam_system(sr,pl)
+
 
 i_inspect_equations = () -> begin
     tmp_s = Dict([e.lhs for e in equations(s)] .=> equations(s))
@@ -19,6 +24,7 @@ i_inspect_equations = () -> begin
     tmp4[(4*20) .+ (1:20)]
     tmp4[100:end]
 end
+
 p = pC = Dict(
     s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
         #which respire and corresponding amount of N must be mineralized)
@@ -31,7 +37,7 @@ p = pC = Dict(
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
     s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
-    s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+    #s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
@@ -43,6 +49,7 @@ p = pC = Dict(
     pl.i_IP0 => 0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
     pl.s_EP0 => 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux
 )
+pC[s.k_mN_R] = pC[s.k_mN_L]
 pN = Dict(
     s.i_BN => 0.4, ##<< potential immobilization flux rate 
     s.β_NEnz => 3.1,     # Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
@@ -53,8 +60,8 @@ pN = Dict(
     s.ν_N =>  0.9,     # microbial N use efficiency accounting for apparent 
 )
 pP = Dict(
-    s.k_LP => pC[s.k_L], # TODO 1/x years, assume same rate as depolymerizing enzyme
-    s.k_RP => pC[s.k_R], # TODO
+    #s.k_LP => pC[s.k_L], # TODO 1/x years, assume same rate as depolymerizing enzyme
+    #s.k_RP => pC[s.k_R], # TODO
     s.i_BP => pN[s.i_BN],       ##<< potential immobilization flux rate 
     s.β_PEnz => 50.0,     # TODO Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
     s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinary and energy compounds
@@ -66,7 +73,7 @@ pP = Dict(
     # s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
 )
-p = p0 = merge(pC, pN, pP)
+p = CP.get_updated_Penz_pars(merge(pC, pN, pP), s)
 
 u0 = u0C = Dict(
     s.B => 17,
@@ -101,31 +108,36 @@ prob = ODEProblem(sp, u0, tspan, p)
 sol = sol_sesam3 = solve(prob, Rodas4());
 #sol = sol_sesam3 = solve(prob, Tsit5(), callback=PositiveDomain(prob.u0));
 
+probr = ODEProblem(spr, u0, tspan, p)
+solr = solve(probr, Rodas4());
+
 i_plot = () -> begin
     #import StatsPlots
+    #using Plots
     ts = tspan
     ts = (2,2.2)
+    ts = (2,30)
     Plots.plot(sol)
-   Plots.plot(sol, vars=[s.R])
-   Plots.plot(sol, vars=[s.calculate_β_PR_sesam3])
-   Plots.plot(sol, vars=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
-   Plots.plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP])
-   Plots.plot(sol, vars=[s.α_L, s.α_R, s.α_LP, s.α_RP], tspan=ts)
-   Plots.plot(sol, vars=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
-   Plots.plot(sol, vars=[s.dec_RP, s.dec_RPPlant], tspan=ts)
-   Plots.plot(sol, vars=[s.I_P])
-   Plots.plot(sol, vars=[s.u_PlantP, s.u_immPPot])
-   Plots.plot(sol, vars=[s.p_uPmic])
+   Plots.plot(sol, idxs=[s.R])
+   Plots.plot(sol, idxs=[s.calculate_β_PR_sesam3])
+   Plots.plot(sol, idxs=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
+   Plots.plot!(solr, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
+   Plots.plot(sol, idxs=[s.dec_RP, s.dec_RPPlant], tspan=ts)
+   Plots.plot(sol, idxs=[s.I_P])
+   Plots.plot(sol, idxs=[s.u_PlantP, s.u_immPPot])
+   Plots.plot(sol, idxs=[s.p_uPmic])
 
-   Plots.plot(sol, vars=[p[s.a_E] * s.B])
-   Plots.plot(sol, vars=[s.α_LP, s.α_RP])
-   Plots.plot(sol, vars=[s.α_LP, s.α_RP], tspan=(68,92))
-   Plots.plot(sol, vars=[s.α_LPT, s.α_RPT], tspan=(80,92))
+   Plots.plot(sol, idxs=[p[s.a_E] * s.B])
+   Plots.plot(sol, idxs=[s.α_LP, s.α_RP])
+   Plots.plot(sol, idxs=[s.α_LP, s.α_RP], tspan=(68,92))
+   Plots.plot(sol, idxs=[s.α_LPT, s.α_RPT], tspan=(80,92))
 
-    Plots.plot(sol, vars=[s.β_PR], tspan=ts)
-    Plots.plot(sol, vars=[s.tvr_B/p[s.β_PB], s.tvr_B/p[s.β_PBtvr], s.resorp_P, s.tvr_B/p[s.β_PBtvr] + s.resorp_P], tspan=ts)
+    Plots.plot(sol, idxs=[s.β_PR], tspan=ts)
+    Plots.plot(sol, idxs=[s.tvr_B/p[s.β_PB], s.tvr_B/p[s.β_PBtvr], s.resorp_P, s.tvr_B/p[s.β_PBtvr] + s.resorp_P], tspan=ts)
 
-    Plots.plot(sol, vars=[s.β_PBtvr, p[s.β_PB] * (1-p[s.ρ_CBtvr])/(1-p[s.ρ_PBtvr])], tspan=ts)
+    Plots.plot(sol, idxs=[s.β_PBtvr, p[s.β_PB] * (1-p[s.ρ_CBtvr])/(1-p[s.ρ_PBtvr])], tspan=ts)
     calculate_β_PR_sesam3(p,s), sol[s.β_PR,end]
 
 

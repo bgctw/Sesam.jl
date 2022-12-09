@@ -195,35 +195,27 @@ function get_revenue_eq_sesam3CN_deriv(sN)
         mdu(t), dα_R(t)
     end)
     # need to be defined in coupled component:
-    @variables w_C(t), w_N(t)
+    @variables lim_C(t), lim_N(t)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
-        d_L ~ dec_LPot * (w_C + w_N/β_NL*p_oNmic), 
-        d_R ~ dec_LPot * (w_C + w_N/β_NR*p_oNmic),         
-        du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz),
-        du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz),
+        d_L ~ dec_LPot * (lim_C + lim_N/β_NL*p_oNmic), 
+        d_R ~ dec_LPot * (lim_C + lim_N/β_NR*p_oNmic),         
+        du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
+        du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
         # TODO exclude enzymes from the mix
         #mdu ~ (du_L + du_R)/2,
         #mdu ~ compute_mean_du(SA[du_L, du_R], SA[α_L, α_L]),
-        mdu ~ compute_mean_du_LR(du_L, α_L, du_R, α_R),
+        mdu ~ compute_mean_du2(du_L, α_L, du_R, α_R),
         dα_R ~ (τ + abs(syn_B)/B)*max((du_R - mdu)/mdu, -α_R)
         ]
     (;eqs, sts)
 end
 
-function compute_mean_du_LR(du_L, α_L, du_R, α_R)
-    # mdu = sum(du)/length(du)
-    # mdu_prev = mdu+1# something different
-    # while  mdu_prev != mdu
-    #     is_alloc = (du .- mdu) .>= alpha .* -mdu
-    #     mdu_prev = mdu
-    #     mdu = sum(du[is_alloc])/(sum(is_alloc) + sum(alpha[.!is_alloc]))
-    # end
-    # mdu
-    mdu = (du_L + du_R)/2
-    mdu1 = IfElse.ifelse( (du_L - mdu) <= -α_L * mdu, du_R,
-        IfElse.ifelse( (du_R - mdu) <= -α_R * mdu, du_L, mdu)
+function compute_mean_du2(du1, α1, du2, α2)
+    mdu = (du1 + du2)/2
+    mdu1 = IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, du1,
+        IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, du2, mdu)
     )
     mdu1
 end

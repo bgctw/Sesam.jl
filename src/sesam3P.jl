@@ -11,7 +11,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         β_PL(t), β_PR(t),
         leach_P(t),
         resorp_P(t), β_PBtvr(t),
-        α_P(t), lim_enz_P(t),
+        α_P(t), lim_enz_P(t), dec_PPot(t),
         dec_LP_P(t), dec_RP_P(t), dec_PPlant(t), 
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
@@ -19,7 +19,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         s_EP(t), pL_sEP(t), # synthesis of E_LP adn E_RP enzymes by plants
         SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t)
     end)
-    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP ρ_PBtvr=0.0
+    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP k_mN_P ρ_PBtvr=0.0
 
     @unpack L, R, B, SOC, SON, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, tvr_B0, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
     @unpack β_NB, β_Ni, L_N, R_N = sN
@@ -30,7 +30,8 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + ϵ_tvr*tvr_B/β_PBtvr + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        lim_enz_P ~ (α_P*syn_Enz + s_EP)/(k_mN_L + α_P*syn_Enz + s_EP),
+        dec_PPot ~ (k_LP * L_P) + (k_RP * R_P),
+        lim_enz_P ~ (α_P*syn_Enz + s_EP)/(k_mN_P + α_P*syn_Enz + s_EP),
         dec_LP_P ~ (k_LP * L_P) * lim_enz_P,
         dec_RP_P ~ (k_RP * R_P) * lim_enz_P,
         # although its not linear, estimate biomineralization by plant enzyme production only
@@ -68,7 +69,7 @@ function get_revenue_eq_sesam3CNP(sP)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sP
     @unpack β_PL, β_PR, β_PEnz = sP
-    @unpack α_P, dec_LP_P, dec_RP_P, dec_PPlant = sP
+    @unpack α_P, dec_LP_P, dec_RP_P, dec_PPlant, syn_B, B, τ = sP
     @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
     sts = @variables (begin
         α_LT(t), α_RT(t),
@@ -78,7 +79,8 @@ function get_revenue_eq_sesam3CNP(sP)
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_P(t),  revenue_P(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
-        revenue_sum(t)
+        revenue_sum(t),
+        τsyn(t), dα_R(t), dα_P(t)
     end)
     # need to be defined in coupled component:
     @variables w_C(t), w_N(t), w_P(t)
@@ -109,12 +111,66 @@ function get_revenue_eq_sesam3CNP(sP)
         # invest_Rn ~ invest_R/(invest_L + invest_R),
         # return_Ln ~ return_L/(return_L + return_R),
         # return_Rn ~ return_R/(return_L + return_R),
+        τsyn ~ τ + abs(syn_B)/B,
+        dα_R ~ (α_RT - α_R)*τsyn,
+        dα_P ~ (α_PT - α_P)*τsyn,
         ]
     (;eqs, sts)
 end
 
+function get_revenue_eq_sesam3CNP_deriv(sP)
+    @parameters t 
+    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz = sP
+    @unpack β_PL, β_PR, β_PEnz = sP
+    @unpack α_P, dec_PPot, k_mN_L, k_mN_R, k_mN_P, s_EP, syn_B, B, τ = sP
+    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
+    sts = @variables (begin
+        syn_Enz_w(t), 
+        p_uPmic(t), p_uNmic(t), p_oPmic(t), p_oNmic(t), 
+        d_L(t), d_R(t), d_P(t),
+        du_L(t), du_R(t), du_P(t),
+        mdu(t), dα_R(t), dα_P(t),
+        τsyn(t)
+        #dα_L(t),
+    end)
+    # need to be defined in coupled component:
+    @variables lim_C(t), lim_N(t), lim_P(t)
+    eqs = [
+        syn_Enz_w ~ syn_Enz*(lim_C + lim_N/β_NEnz + lim_P/β_PEnz),
+        # return of enzymes produced in addition to that of plants
+        # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
+        p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
+        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
+        d_L ~ dec_LPot * (lim_C + lim_N/β_NL*p_oNmic + lim_P/β_PL*p_oPmic), 
+        d_R ~ dec_RPot * (lim_C + lim_N/β_NR*p_oNmic + lim_P/β_PR*p_oPmic), 
+        d_P ~ dec_PPot * p_uPmic * lim_P, 
+        du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
+        du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
+        du_P ~ syn_Enz*k_mN_R*d_P/(s_EP + k_mN_P + α_P*syn_Enz)^2,
+        mdu ~ compute_mean_du3(du_L, α_L, du_R, α_R, du_P, α_P),
+        τsyn ~ τ + abs(syn_B)/B,
+        #dα_L ~ τsyn * max((du_L - mdu)/mdu, -α_L),
+        dα_R ~ τsyn * max((du_R - mdu)/mdu, -α_R),
+        dα_P ~ τsyn * max((du_P - mdu)/mdu, -α_P),
+        ]
+    (;eqs, sts)
+end
 
-function sesam3CNP(;name, δ=40.0, max_w=12, use_seam_revenue=false, sP=sesam3P(name=:sP))
+function compute_mean_du3(du1, α1, du2, α2, du3, α3)
+    mdu = (du1 + du2 + du3)/3
+    m1 = IfElse.ifelse( (du3 - mdu) <= -α3 * mdu, compute_mean_du2(du1, α1, du2, α2), 
+        IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, compute_mean_du2(du1, α1, du3, α3), 
+            IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, compute_mean_du2(du2, α2, du3, α3), 
+                mdu
+            )
+        )
+    )
+    m1
+end
+
+function sesam3CNP(;name, δ=40.0, max_w=12, use_proportional_revenue=false, sP=sesam3P(name=:sP))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sP
@@ -131,7 +187,8 @@ function sesam3CNP(;name, δ=40.0, max_w=12, use_seam_revenue=false, sP=sesam3P(
         w_P(t), lim_P(t)
     end)
     ps = @parameters δ=δ max_w=max_w
-    eqs_rev, sts_rev = get_revenue_eq_sesam3CNP(sP)
+    eqs_rev, sts_rev = use_proportional_revenue ? 
+        get_revenue_eq_sesam3CNP(sP) : get_revenue_eq_sesam3CNP_deriv(sP)
     @variables α_LT(t) α_RT(t)
     @variables α_PT(t) 
     eqs = [
@@ -157,12 +214,12 @@ function sesam3CNP(;name, δ=40.0, max_w=12, use_seam_revenue=false, sP=sesam3P(
         w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
         w_P ~ exp(min(max_w, -δ/tvr_B*(C_synBP - syn_B))),
         sum_w ~ w_C + w_N + w_P,
-        lim_C ~ w_C/sum_w, lim_N ~ w_N/sum_w, lim_P ~ w_P/sum_w,# normalized for plot
+        lim_C ~ w_C/sum_w, lim_N ~ w_N/sum_w, lim_P ~ w_P/sum_w,# normalized 
         # α_LT, α_RT by get_revenue_eq_X
         #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         α_L ~ 1 - (α_R + α_P),
-        D(α_R) ~ dα_R, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
-        D(α_P) ~ dα_P, dα_P ~ (α_PT - α_P)*(τ + abs(syn_B)/B),
+        D(α_R) ~ dα_R, 
+        D(α_P) ~ dα_P, 
         ]
     extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sP)
 end
@@ -195,6 +252,15 @@ function calculate_β_PR_sesam3(p_sym)
     β_PR = 1/((w_REnz/p_sym[:s₊β_PEnz] + w_RBtvr/β_PBtvr)/(w_REnz + w_RBtvr))
 end
 
+function get_updated_Penz_pars(pDict, s)
+    # create a copy of parameters and set k_mN_P, k_LP, and k_RP 
+    # to values of the L/R enzymes
+    p = copy(pDict)
+    p[s.k_mN_P] = p[s.k_mN_R] 
+    p[s.k_RP] = p[s.k_R] 
+    p[s.k_LP] = p[s.k_L] 
+    p
+end
 
 
 
