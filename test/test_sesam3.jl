@@ -74,8 +74,7 @@ u0 = u0C = Dict(
     s.R => 1100,
     #s.cumresp => 0.0,
     s.α_R => 0.1, 
-    s.α_RP => 0.1, 
-    s.α_LP => 0.1, 
+    s.α_P => 0.1, 
 )
 #u0C[s.α_L] = 1.0 - u0C[s.α_R] - u0C[s.α_LP] - u0C[s.α_RP]
 u0N = Dict(

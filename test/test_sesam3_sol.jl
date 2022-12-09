@@ -49,8 +49,8 @@ end;
 
 @testset "balanced allocation sums to one" begin
     #Plots.plot(sol, vars=[s.α_LT,s.α_RT, s.α_LT+s.α_RT])
-    @test all(isapprox.(sol[s.α_LT + s.α_RT + s.α_LPT + s.α_RPT], 1.0, rtol = 1e-8))
-    @test all(isapprox.(sol[s.α_L + s.α_R + s.α_LP + s.α_RP], 1.0, rtol = 1e-8))
+    @test all(isapprox.(sol[s.α_LT + s.α_RT + s.α_PT], 1.0, rtol = 1e-8))
+    @test all(isapprox.(sol[s.α_L + s.α_R + s.α_P], 1.0, rtol = 1e-8))
 end;
 
 @testset "microbial dP balance" begin
