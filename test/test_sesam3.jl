@@ -126,10 +126,11 @@ i_plot = () -> begin
    Plots.plot(sol, idxs=[s.d_L, s.d_R, s.d_P], tspan=ts)
    Plots.plot(sol, idxs=[s.du_L, s.du_R, s.du_P], tspan=ts)
    Plots.plot(sol, idxs=[s.dα_R, s.dα_P], tspan=ts)
+   Plots.plot(sol, idxs=[sr.return_L, sr.return_R, sr.return_P], tspan=ts)
 
    Plots.plot!(solr, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
    Plots.plot(sol, idxs=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
-   Plots.plot(sol, idxs=[s.dec_RP, s.dec_RPPlant], tspan=ts)
+   Plots.plot(sol, idxs=[sr.dec_RP_P, sr.dec_PPlant], tspan=ts)
    Plots.plot(sol, idxs=[s.I_P])
    Plots.plot(sol, idxs=[s.u_PlantP, s.u_immPPot])
    Plots.plot(sol, idxs=[s.p_uPmic])
@@ -203,8 +204,8 @@ end;
     dL = 0.7
     dR = 0.5
     dP = 1.0
-    calc_alpha3_proptoderiv = (dL, dR, dP, B0=1, s_EP=0) -> begin
-        sLRP = CP.sesam_const_dLRP(dL,dR, dP; name=:s)
+    calc_alpha3_proptoderiv = (dL, dR, dP, B0=1, s_EP=0;use_proportional_revenue=false, kwargs...) -> begin
+        sLRP = use_proportional_revenue ? CP.sesam_const_dLRP_relative(dL,dR, dP; name=:s, use_proportional_revenue, kwargs...) : CP.sesam_const_dLRP(dL,dR, dP; name=:s, kwargs...)
         @named spLRP = plant_sesam_system(sLRP,pl)
         u0LRP = copy(u0)
         u0LRP[s.B] = B0
@@ -220,13 +221,22 @@ end;
     @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0)[3],0.0, atol=1e-5)
     @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0.3)[3], 0.15, atol=0.01)
     @test isapprox(calc_alpha3_proptoderiv(dL, dR, 1)[3], 0.48, atol=0.01)
+    #
+    @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0.3; use_proportional_revenue=true)[3], 0.23, atol=0.01)
+
     tmpf = () -> begin
         #using Plots
+        #using LaTeXStrings
         dPs = range(0,stop=1,length=51)[2:end]
         tmp = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi), dPs) 
         plot(dPs, getindex.(tmp, 1), label="α_L")
         plot!(dPs, getindex.(tmp, 2), label="α_R")
         plot!(dPs, getindex.(tmp, 3), label="α_P")
+        xlabel!(L"d_P \ (g \, m^{-2} \, yr^{-1})")
+        tmp2 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi; use_proportional_revenue=true), dPs) 
+        plot!(dPs, getindex.(tmp2, 1), label="α_L rel", linestyle=:dot)
+        plot!(dPs, getindex.(tmp2, 2), label="α_R rel", linestyle=:dot)
+        plot!(dPs, getindex.(tmp2, 3), label="α_P rel", linestyle=:dot)
     end
 end;
 
