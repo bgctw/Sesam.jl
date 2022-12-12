@@ -59,7 +59,7 @@ pN = Dict(
     # pl.u_PlantNmax0 => Inf32, # only constrained by k_PlantN in min function
     # pl.k_PlantN0 => 10.57, #0.0289652*365     ##<< plant uptake rate first order of IN
 )
-p = merge(pC, pN)
+p = p0 = merge(pC, pN)
 
 u0 = u0C = Dict(
     s.B => 17,
@@ -119,4 +119,11 @@ end;
     include("test_sesam3CN_sol.jl")
 end
 
-
+@testset "compute_mean_du2" begin
+    # du2 - mdu < alpha2*mdu: only du1
+    @test CP.compute_mean_du2(0.7, 0.9, 0.3, 0.1) == 0.7
+    # du1 - mdu < alpha2*mdu: only du2
+    @test CP.compute_mean_du2(0.3, 0.1, 0.7, 0.9) == 0.7
+    # mean across both
+    @test CP.compute_mean_du2(0.3, 0.5, 0.7, 0.5) == 0.5
+end;

@@ -3,6 +3,7 @@ using ModelingToolkit, DifferentialEquations
 using Test
 using DistributionFits
 using MTKHelpers
+import Sesam as CP
 
 
 @testset "sesam3_protect" begin

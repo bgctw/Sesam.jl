@@ -26,5 +26,6 @@ include("plant_const.jl")
 include("plant_face.jl")
 include("plant_face_fluct.jl")
 include("compose.jl")
+include("override.jl")
 
 end

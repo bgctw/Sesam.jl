@@ -73,7 +73,7 @@ pP = Dict(
     # s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
 )
-p = CP.get_updated_Penz_pars(merge(pC, pN, pP), s)
+p = p0= CP.get_updated_Penz_pars(merge(pC, pN, pP), s)
 
 u0 = u0C = Dict(
     s.B => 17,
@@ -115,13 +115,18 @@ i_plot = () -> begin
     #import StatsPlots
     #using Plots
     ts = tspan
-    ts = (2,2.2)
+    ts = extrema(sol.t)
+    ts = (0,1)
     ts = (2,30)
     Plots.plot(sol)
    Plots.plot(sol, idxs=[s.R])
    Plots.plot(sol, idxs=[s.calculate_β_PR_sesam3])
    Plots.plot(sol, idxs=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
    Plots.plot(sol, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.d_L, s.d_R, s.d_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.du_L, s.du_R, s.du_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.dα_R, s.dα_P], tspan=ts)
+
    Plots.plot!(solr, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
    Plots.plot(sol, idxs=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
    Plots.plot(sol, idxs=[s.dec_RP, s.dec_RPPlant], tspan=ts)
@@ -130,6 +135,7 @@ i_plot = () -> begin
    Plots.plot(sol, idxs=[s.p_uPmic])
 
    Plots.plot(sol, idxs=[p[s.a_E] * s.B])
+   Plots.plot(sol, idxs=[s.B])
    Plots.plot(sol, idxs=[s.α_LP, s.α_RP])
    Plots.plot(sol, idxs=[s.α_LP, s.α_RP], tspan=(68,92))
    Plots.plot(sol, idxs=[s.α_LPT, s.α_RPT], tspan=(80,92))
@@ -172,4 +178,56 @@ end;
     β_PR2 = calculate_β_PR_sesam3(p_sym)
     @test β_PR2 == β_PR
 end;
+
+@testset "compute_mean_du3" begin
+    # all three
+    @test CP.compute_mean_du3(0.7, 1/3, 0.4, 1/3, 0.4, 1/3) == 0.5
+    # only du1 and du2
+    @test CP.compute_mean_du3(0.6, 0.45, 0.4, 0.45, 0.01, 0.1) == 0.5
+    # only du1 and du3
+    @test CP.compute_mean_du3(0.6, 0.45, 0.01, 0.1, 0.4, 0.45) == 0.5
+    # only du3 and du3
+    @test CP.compute_mean_du3(0.01, 0.1, 0.6, 0.45, 0.4, 0.45) == 0.5
+    # only du1
+    @test CP.compute_mean_du3(0.7, 0.9, 0.1, 0.1, 0.1, 0.1) == 0.7
+    # only du2
+    @test CP.compute_mean_du3(0.1, 0.1, 0.7, 0.9, 0.1, 0.1) == 0.7
+    # only du3
+    @test CP.compute_mean_du3(0.1, 0.1, 0.1, 0.1, 0.7, 0.9) == 0.7
+end;
+
+
+
+@testset "dalpha on P gradient" begin
+    # example from sesam_LRP_deriv.Rmd
+    dL = 0.7
+    dR = 0.5
+    dP = 1.0
+    calc_alpha3_proptoderiv = (dL, dR, dP, B0=1, s_EP=0) -> begin
+        sLRP = CP.sesam_const_dLRP(dL,dR, dP; name=:s)
+        @named spLRP = plant_sesam_system(sLRP,pl)
+        u0LRP = copy(u0)
+        u0LRP[s.B] = B0
+        pLRP = copy(p0)
+        pLRP[pl.s_EP0] = s_EP
+        pLRP[s.a_E] = 0.1
+        pLRP[s.k_mN_L] = pLRP[s.k_mN_R] = pLRP[s.k_mN_P] = pLRP[s.a_E]*B0/2
+        probLRP = ODEProblem(spLRP, u0LRP, (0,5), pLRP)
+        sol = solLRP = solve(probLRP, Rodas4());
+        map(v -> sol[v][end], [s.α_L, s.α_R, s.α_P])
+    end
+    # regression to values of sesam_LRP_deriv.Rmd
+    @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0)[3],0.0, atol=1e-5)
+    @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0.3)[3], 0.15, atol=0.01)
+    @test isapprox(calc_alpha3_proptoderiv(dL, dR, 1)[3], 0.48, atol=0.01)
+    tmpf = () -> begin
+        #using Plots
+        dPs = range(0,stop=1,length=51)[2:end]
+        tmp = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi), dPs) 
+        plot(dPs, getindex.(tmp, 1), label="α_L")
+        plot!(dPs, getindex.(tmp, 2), label="α_R")
+        plot!(dPs, getindex.(tmp, 3), label="α_P")
+    end
+end;
+
 

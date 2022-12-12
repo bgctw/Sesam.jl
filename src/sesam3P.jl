@@ -67,7 +67,7 @@ end
 
 function get_revenue_eq_sesam3CNP(sP)
     @parameters t 
-    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz = sP
+    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz, ϵ = sP
     @unpack β_PL, β_PR, β_PEnz = sP
     @unpack α_P, dec_LP_P, dec_RP_P, dec_PPlant, syn_B, B, τ = sP
     @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
@@ -86,10 +86,10 @@ function get_revenue_eq_sesam3CNP(sP)
     @variables w_C(t), w_N(t), w_P(t)
     eqs = [
         syn_Enz_w ~ syn_Enz*(w_C + w_N/β_NEnz + w_P/β_PEnz),
-        # return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
-        # return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
-        return_L ~ dec_L * (w_C + w_N/β_NL*p_oNmic + w_P/β_PL*p_oPmic), 
-        return_R ~ dec_R * (w_C + w_N/β_NR*p_oNmic + w_P/β_PR*p_oPmic), 
+        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*p_oNmic + w_P/β_PL*p_oPmic), 
+        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*p_oNmic + w_P/β_PR*p_oPmic), 
+        return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
+        return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
         # return of enzymes produced in addition to that of plants
         # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
         # TODO dec_LP_P is already in P units, no need to devide by β_P
@@ -97,7 +97,8 @@ function get_revenue_eq_sesam3CNP(sP)
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
-        return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * p_uPmic * w_P, 
+        #return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * p_uPmic * w_P, 
+        return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),
         revenue_R ~ return_R / (α_R * syn_Enz_w),
         # avoid deviding by zero. Checking > 0 fails with Derivative need to check > small_number
@@ -120,7 +121,7 @@ end
 
 function get_revenue_eq_sesam3CNP_deriv(sP)
     @parameters t 
-    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz = sP
+    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz, ϵ = sP
     @unpack β_PL, β_PR, β_PEnz = sP
     @unpack α_P, dec_PPot, k_mN_L, k_mN_R, k_mN_P, s_EP, syn_B, B, τ = sP
     @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
@@ -143,9 +144,12 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
-        d_L ~ dec_LPot * (lim_C + lim_N/β_NL*p_oNmic + lim_P/β_PL*p_oPmic), 
-        d_R ~ dec_RPot * (lim_C + lim_N/β_NR*p_oNmic + lim_P/β_PR*p_oPmic), 
-        d_P ~ dec_PPot * p_uPmic * lim_P, 
+        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*p_oNmic + lim_P/β_PL*p_oPmic), 
+        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*p_oNmic + lim_P/β_PR*p_oPmic), 
+        # d_P ~ dec_PPot * p_uPmic * lim_P, 
+        d_L ~ dec_LPot * (lim_C + lim_N/β_NL + lim_P/β_PL), 
+        d_R ~ dec_RPot * (lim_C + lim_N/β_NR + lim_P/β_PR), 
+        d_P ~ dec_PPot * lim_P, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
         du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
         du_P ~ syn_Enz*k_mN_R*d_P/(s_EP + k_mN_P + α_P*syn_Enz)^2,

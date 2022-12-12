@@ -148,7 +148,7 @@ end
 
 function get_revenue_eq_sesam3CN(sN)
     @parameters t 
-    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz, τ, syn_B, B = sN
+    @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NEnz, syn_Enz, τ, syn_B, B, ϵ = sN
     @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
@@ -164,10 +164,11 @@ function get_revenue_eq_sesam3CN(sN)
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
         invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
         invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
-        # return_L ~ dec_L * (w_C + w_N/β_NL), 
-        # return_R ~ dec_R * (w_C + w_N/β_NR), 
-        return_L ~ dec_L * (w_C + w_N/β_NL*p_oNmic), 
-        return_R ~ dec_R * (w_C + w_N/β_NR*p_oNmic),         
+        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*p_oNmic), 
+        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*p_oNmic),         
+        # for compatibility with R and to easier reasoning return equals minearlization
+        return_L ~ dec_L * (w_C + w_N/β_NL), 
+        return_R ~ dec_R * (w_C + w_N/β_NR), 
         revenue_L ~ return_L / invest_L,
         revenue_R ~ return_R / invest_R,
         revenue_sum ~ revenue_L + revenue_R,
@@ -185,7 +186,7 @@ end
 
 function get_revenue_eq_sesam3CN_deriv(sN)
     @parameters t 
-    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz = sN
+    @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NEnz, syn_Enz, ϵ = sN
     @unpack τ, syn_B, B, k_mN_L, k_mN_R = sN
     @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
@@ -199,8 +200,10 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
-        d_L ~ dec_LPot * (lim_C + lim_N/β_NL*p_oNmic), 
-        d_R ~ dec_LPot * (lim_C + lim_N/β_NR*p_oNmic),         
+        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*p_oNmic), 
+        # d_R ~ dec_LPot * (lim_C*ϵ + lim_N/β_NR*p_oNmic),         
+        d_L ~ dec_LPot * (lim_C + lim_N/β_NL), 
+        d_R ~ dec_LPot * (lim_C + lim_N/β_NR),         
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
         du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
         # TODO exclude enzymes from the mix
