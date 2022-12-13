@@ -215,10 +215,11 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     (;eqs, sts)
 end
 
-function compute_mean_du2(du1, α1, du2, α2)
+function compute_mean_du2(du1, α1, du2, α2; sum_α_others=0)
     mdu = (du1 + du2)/2
-    mdu1 = IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, du1,
-        IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, du2, mdu)
+    mdu1 = IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, du1/(1+α2+sum_α_others),
+        IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, du2/(1+α1+sum_α_others), 
+            2*mdu/(2+sum_α_others))
     )
     mdu1
 end

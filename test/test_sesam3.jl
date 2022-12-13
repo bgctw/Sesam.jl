@@ -116,7 +116,7 @@ i_plot = () -> begin
     #using Plots
     ts = tspan
     ts = extrema(sol.t)
-    ts = (0,1)
+    ts = (0,0.06)
     ts = (2,30)
     Plots.plot(sol)
    Plots.plot(sol, idxs=[s.R])
@@ -124,12 +124,12 @@ i_plot = () -> begin
    Plots.plot(sol, idxs=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
    Plots.plot(sol, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
    Plots.plot(sol, idxs=[s.d_L, s.d_R, s.d_P], tspan=ts)
-   Plots.plot(sol, idxs=[s.du_L, s.du_R, s.du_P], tspan=ts)
+   Plots.plot(sol, idxs=[s.du_L, s.du_R, s.du_P, s.mdu], tspan=ts)
    Plots.plot(sol, idxs=[s.dα_R, s.dα_P], tspan=ts)
-   Plots.plot(sol, idxs=[sr.return_L, sr.return_R, sr.return_P], tspan=ts)
 
    Plots.plot!(solr, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
    Plots.plot(sol, idxs=[s.revenue_L, s.revenue_R, s.revenue_LP, s.revenue_RP], tspan=ts)
+   Plots.plot(sol, idxs=[sr.return_L, sr.return_R, sr.return_P], tspan=ts)
    Plots.plot(sol, idxs=[sr.dec_RP_P, sr.dec_PPlant], tspan=ts)
    Plots.plot(sol, idxs=[s.I_P])
    Plots.plot(sol, idxs=[s.u_PlantP, s.u_immPPot])
@@ -184,20 +184,20 @@ end;
     # all three
     @test CP.compute_mean_du3(0.7, 1/3, 0.4, 1/3, 0.4, 1/3) == 0.5
     # only du1 and du2
-    @test CP.compute_mean_du3(0.6, 0.45, 0.4, 0.45, 0.01, 0.1) == 0.5
+    # mean is slighly less than 0.5 to account for decreasing third
+    @test 0.4 < CP.compute_mean_du3(0.6, 0.45, 0.4, 0.45, 0.01, 0.1) < 0.5
     # only du1 and du3
-    @test CP.compute_mean_du3(0.6, 0.45, 0.01, 0.1, 0.4, 0.45) == 0.5
+    @test 0.4 < CP.compute_mean_du3(0.6, 0.45, 0.01, 0.1, 0.4, 0.45) < 0.5
     # only du3 and du3
-    @test CP.compute_mean_du3(0.01, 0.1, 0.6, 0.45, 0.4, 0.45) == 0.5
+    @test 0.4 < CP.compute_mean_du3(0.01, 0.1, 0.6, 0.45, 0.4, 0.45) < 0.5
     # only du1
-    @test CP.compute_mean_du3(0.7, 0.9, 0.1, 0.1, 0.1, 0.1) == 0.7
+    # slighly less than 0.7 to account for decreasing others
+    @test 0.5 < CP.compute_mean_du3(0.7, 0.9, 0.1, 0.1, 0.1, 0.1) < 0.7
     # only du2
-    @test CP.compute_mean_du3(0.1, 0.1, 0.7, 0.9, 0.1, 0.1) == 0.7
+    @test 0.5 < CP.compute_mean_du3(0.1, 0.1, 0.7, 0.9, 0.1, 0.1) < 0.7
     # only du3
-    @test CP.compute_mean_du3(0.1, 0.1, 0.1, 0.1, 0.7, 0.9) == 0.7
+    @test 0.5 < CP.compute_mean_du3(0.1, 0.1, 0.1, 0.1, 0.7, 0.9) < 0.7
 end;
-
-
 
 @testset "dalpha on P gradient" begin
     # example from sesam_LRP_deriv.Rmd
@@ -218,16 +218,17 @@ end;
     probLRP_r = ODEProblem(spLRP_r, u0LRP, (0,5), pLRP)
     sol = solLRP_r = solve(probLRP, Rodas4());
     sol = solLRP = solve(probLRP_r, Rodas4());
-    popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP)
+    #push!(LOAD_PATH, "/User/homes/twutz/julia/scimltools/")
+    #using ComponentArrays
+    #using MTKHelpers
+    popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP, s₊B = 1)
     pset = ProblemParSetter(spLRP, popt)
     pset_r = ProblemParSetter(spLRP_r, popt)
     calc_alpha3_proptoderiv = (dL, dR, dP, B0=1, s_EP=0;use_proportional_revenue=false, kwargs...) -> begin
-        #push!(LOAD_PATH, "/User/homes/twutz/julia/scimltools/")
-        #using ComponentArrays
-        #using MTKHelpers
-        popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP)
+        popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP, s₊B = B0)
         prob_u = use_proportional_revenue ? update_statepar(pset_r, popt, probLRP_r) :
             update_statepar(pset, popt, probLRP)
+        get_paropt(pset, prob_u)
         sol = solve(prob_u, Rodas4());
         map(v -> sol[v][end], [s.α_L, s.α_R, s.α_P])
     end
@@ -251,6 +252,19 @@ end;
         plot!(dPs, getindex.(tmp2, 1), label="α_L rel", linestyle=:dot)
         plot!(dPs, getindex.(tmp2, 2), label="α_R rel", linestyle=:dot)
         plot!(dPs, getindex.(tmp2, 3), label="α_P rel", linestyle=:dot)
+        tmp3 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi, 5), dPs) 
+        plot!(dPs, getindex.(tmp3, 1), label="α_L highB", linestyle=:dash)
+        plot!(dPs, getindex.(tmp3, 2), label="α_R highB", linestyle=:dash)
+        plot!(dPs, getindex.(tmp3, 3), label="α_P highB", linestyle=:dash)
+        #
+        tmp4 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi, 5; use_proportional_revenue=true), dPs) 
+        plot!(dPs, getindex.(tmp4, 1), label="α_L rel,highB", linestyle=:dashdot)
+        plot!(dPs, getindex.(tmp4, 2), label="α_R rel,highB", linestyle=:dashdot)
+        plot!(dPs, getindex.(tmp4, 3), label="α_P rel,highB", linestyle=:dashdot)
+        tmp5 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi, 0.1; use_proportional_revenue=true), dPs) 
+        plot!(dPs, getindex.(tmp5, 5), label="α_L rel,lowB", linestyle=:dashdot)
+        plot!(dPs, getindex.(tmp5, 2), label="α_R rel,lowB", linestyle=:dashdot)
+        plot!(dPs, getindex.(tmp5, 3), label="α_P rel,lowB", linestyle=:dashdot)
     end
 end;
 

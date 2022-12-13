@@ -164,12 +164,15 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
     (;eqs, sts)
 end
 
-function compute_mean_du3(du1, α1, du2, α2, du3, α3)
+function compute_mean_du3(du1, α1, du2, α2, du3, α3; sum_α_others=0)
     mdu = (du1 + du2 + du3)/3
-    m1 = IfElse.ifelse( (du3 - mdu) <= -α3 * mdu, compute_mean_du2(du1, α1, du2, α2), 
-        IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, compute_mean_du2(du1, α1, du3, α3), 
-            IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, compute_mean_du2(du2, α2, du3, α3), 
-                mdu
+    m1 = IfElse.ifelse( (du3 - mdu) <= -α3 * mdu, compute_mean_du2(
+        du1, α1, du2, α2; sum_α_others=sum_α_others+α3), 
+        IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, compute_mean_du2(
+            du1, α1, du3, α3; sum_α_others=sum_α_others+α2), 
+            IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, compute_mean_du2(
+                du2, α2, du3, α3; sum_α_others=sum_α_others+α1), 
+                3*mdu/(3+sum_α_others)
             )
         )
     )

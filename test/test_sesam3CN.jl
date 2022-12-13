@@ -121,9 +121,9 @@ end
 
 @testset "compute_mean_du2" begin
     # du2 - mdu < alpha2*mdu: only du1
-    @test CP.compute_mean_du2(0.7, 0.9, 0.3, 0.1) == 0.7
+    @test 0.6 < CP.compute_mean_du2(0.7, 0.9, 0.3, 0.1) < 0.7
     # du1 - mdu < alpha2*mdu: only du2
-    @test CP.compute_mean_du2(0.3, 0.1, 0.7, 0.9) == 0.7
+    @test 0.6 < CP.compute_mean_du2(0.3, 0.1, 0.7, 0.9) < 0.7
     # mean across both
     @test CP.compute_mean_du2(0.3, 0.5, 0.7, 0.5) == 0.5
 end;
