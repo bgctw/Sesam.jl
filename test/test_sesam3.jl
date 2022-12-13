@@ -204,17 +204,31 @@ end;
     dL = 0.7
     dR = 0.5
     dP = 1.0
+    sLRP = CP.sesam_const_dLRP(dL,dR, dP; name=:s, kwargs...)
+    sLRP_r = CP.sesam_const_dLRP_relative(dL,dR, dP; name=:s, kwargs...) 
+    @named spLRP = plant_sesam_system(sLRP,pl)
+    @named spLRP_r = plant_sesam_system(sLRP_r,pl)
+    u0LRP = copy(u0)
+    u0LRP[s.B] = B0
+    pLRP = copy(p0)
+    pLRP[pl.s_EP0] = s_EP
+    pLRP[s.a_E] = 0.1
+    pLRP[s.k_mN_L] = pLRP[s.k_mN_R] = pLRP[s.k_mN_P] = pLRP[s.a_E]*B0/2
+    probLRP = ODEProblem(spLRP, u0LRP, (0,5), pLRP)
+    probLRP_r = ODEProblem(spLRP_r, u0LRP, (0,5), pLRP)
+    sol = solLRP_r = solve(probLRP, Rodas4());
+    sol = solLRP = solve(probLRP_r, Rodas4());
+    popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP)
+    pset = ProblemParSetter(spLRP, popt)
+    pset_r = ProblemParSetter(spLRP_r, popt)
     calc_alpha3_proptoderiv = (dL, dR, dP, B0=1, s_EP=0;use_proportional_revenue=false, kwargs...) -> begin
-        sLRP = use_proportional_revenue ? CP.sesam_const_dLRP_relative(dL,dR, dP; name=:s, use_proportional_revenue, kwargs...) : CP.sesam_const_dLRP(dL,dR, dP; name=:s, kwargs...)
-        @named spLRP = plant_sesam_system(sLRP,pl)
-        u0LRP = copy(u0)
-        u0LRP[s.B] = B0
-        pLRP = copy(p0)
-        pLRP[pl.s_EP0] = s_EP
-        pLRP[s.a_E] = 0.1
-        pLRP[s.k_mN_L] = pLRP[s.k_mN_R] = pLRP[s.k_mN_P] = pLRP[s.a_E]*B0/2
-        probLRP = ODEProblem(spLRP, u0LRP, (0,5), pLRP)
-        sol = solLRP = solve(probLRP, Rodas4());
+        #push!(LOAD_PATH, "/User/homes/twutz/julia/scimltools/")
+        #using ComponentArrays
+        #using MTKHelpers
+        popt = ComponentVector(s₊d_L0=dL, s₊d_R0=dR, s₊d_P0=dP)
+        prob_u = use_proportional_revenue ? update_statepar(pset_r, popt, probLRP_r) :
+            update_statepar(pset, popt, probLRP)
+        sol = solve(prob_u, Rodas4());
         map(v -> sol[v][end], [s.α_L, s.α_R, s.α_P])
     end
     # regression to values of sesam_LRP_deriv.Rmd

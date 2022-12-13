@@ -32,41 +32,43 @@ function override(eqs, basesys::AbstractSystem; name::Symbol=Symbol(string(nameo
     end
 end
 
-function sesam_const_dLRP(dL0, dR0, dP0; name, B0=1, kwargs...)
+function sesam_const_dLRP(dL0, dR0, dP0; name, kwargs...)
     s = sesam3(;name=:s, kwargs...)
     @unpack d_L, d_R, d_P, B = s
     @parameters t 
+    ps = @parameters d_L0=dL0 d_R0=dR0 d_P0=dP0
     D = Differential(t)
     eqs = [
-        d_L ~ dL0,
-        d_R ~ dR0,
-        d_P ~ dP0,
-        D(B) ~ (B - B0),
+        d_L ~ d_L0,
+        d_R ~ d_R0,
+        d_P ~ d_P0,
+        D(B) ~ 0,
     ]
-    sys_ext = override(eqs, s; name) # extend does not overwrite
+    sys_ext = override(eqs, s; name, ps) # extend does not overwrite
 end
 
-function sesam_const_dLRP_relative(dL0, dR0, dP0; name, B0=1, kwargs...)
+function sesam_const_dLRP_relative(dL0, dR0, dP0; name, kwargs...)
     s = sesam3(;name=:s, use_proportional_revenue=true, kwargs...)
     @unpack dec_LPot, dec_RPot, dec_LPPot, dec_RPPot, dec_PPlant, B = s
     @unpack w_C, w_P, w_N, β_PL, β_PR = s
+    ps = @parameters d_L0=dL0 d_R0=dR0 d_P0=dP0
     @parameters t 
     D = Differential(t)
     # there is no clear correspondence to sesam_LRP_deriv.Rmd
     # has to specify something before mutlipyling with enzmye-limitation-factor
     # but after weighting elemental limitations
     eqs = [
-        dec_LPot ~ dL0 - dP0/2*w_P/β_PL, # subtract P flux - wanted to only specify C flux
-        dec_RPot ~ dR0 - dP0/2*w_P/β_PR,
-        dec_LPPot ~ dP0/2,
-        dec_RPPot ~ dP0/2,
+        dec_LPot ~ d_L0 - d_P0/2*w_P/β_PL, # subtract P flux - wanted to only specify C flux
+        dec_RPot ~ d_R0 - d_P0/2*w_P/β_PR,
+        dec_LPPot ~ d_P0/2,
+        dec_RPPot ~ d_P0/2,
         dec_PPlant ~ 0,
-        D(B) ~ (B - B0),
+        D(B) ~ 0,
         w_C ~ 1,
         w_P ~ 1,
         w_N ~ 0,
     ]
-    sys_ext = override(eqs, s; name) # extend does not overwrite
+    sys_ext = override(eqs, s; name, ps) # extend does not overwrite
 end
 
 
