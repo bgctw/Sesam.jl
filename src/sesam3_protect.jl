@@ -4,13 +4,14 @@ function sesam3C_protect(;name, k_N=60.0)
     @parameters t 
     D = Differential(t)
 
-    @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
-    @parameters k_L  k_R  k_mN_L k_mN_R k_N=k_N
-    @parameters α_R0
-    @parameters ρ_NBtvr = 0.0 # used in N component, only relevant for variants implementing microbial nutrient resorption
-    @parameters K_eqR=1e-3 Q_max=10_000.0
+    ps = @parameters(
+        ϵ, ϵ_tvr, κ_E, a_E,  m,  τ,  
+        k_L,  k_R,  k_mN_L, k_mN_R, k_N=k_N,
+        ρ_NBtvr = 0.0, # used in N component, only relevant for variants implementing microbial nutrient resorption
+        K_eqR=1e-3, Q_max=10_000.0,
+    ) 
 
-    @variables (begin
+    sts = @variables (begin
         B(t),  L(t),   R(t),  cumresp(t), Ra(t), # accessible portion of R
         dB(t), dL(t), dR(t), r_tot(t),
         syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t), tvr_B0(t),
@@ -20,11 +21,14 @@ function sesam3C_protect(;name, k_N=60.0)
         C_synBCt(t), C_synBC(t), r_G(t),
         r_tvr(t), 
         r_B(t), r_GEnz(t), r_O(t),
+        # new variables
+        k_Rtot(t),
         # need to be defined by component across all elements
         α_L(t), α_R(t),
         # need to be specified by coupled system:
         i_L(t), syn_B(t),
-        k_Rtot(t) 
+        ω_Enz(t), ω_L(t), ω_R(t),
+        ν_TN(t)
     end)
 
     eqs = [
@@ -38,7 +42,7 @@ function sesam3C_protect(;name, k_N=60.0)
         dec_LPot ~ k_L * L,
         dec_L ~ dec_LPot*(α_L * syn_Enz)/(k_mN_L + α_L*syn_Enz),
         # the next two lines are different from sesam3
-        # note the new observable Ra and paramters Q_max, K_eqR
+        # note the new observable Ra, k_Rtot and paramters Q_max, K_eqR
         dec_RPot ~ k_R * Ra,
         Ra ~ compute_accessible_langmuir(R, Q_max, K_eqR),
         k_Rtot ~ k_R * Ra/R,
@@ -59,7 +63,7 @@ function sesam3C_protect(;name, k_N=60.0)
         E_L ~ (α_L * syn_Enz)/k_N,
         E_R ~ (α_R * syn_Enz)/k_N,
         ]
-    ODESystem(eqs; name)    
+    ODESystem(eqs, t, sts, ps; name)    
 end
 
 function compute_accessible_langmuir(R, Q_max, K_eqR) 
@@ -74,7 +78,7 @@ end
 
 sesam3_protect(args...;kwargs...) = sesam3CN(
     args...; 
-    sN = sN=sesam3N(name=:sN, sC = sesam3C_protect(name=:sC)),
+    sN = sesam3N(name=:sN, sC = sesam3C_protect(name=:sC)),
     kwargs...
 )
 

@@ -105,6 +105,15 @@ i_plot = () -> begin
     calculate_β_NR_sesam3(p,s), sol[s.β_NR,end]
 end
 
+@testset "compute_mean_du2" begin
+    # du2 - mdu < alpha2*mdu: only du1
+    @test 0.6 < CP.compute_mean_du2(0.7, 0.9, 0.3, 0.1) < 0.7
+    # du1 - mdu < alpha2*mdu: only du2
+    @test 0.6 < CP.compute_mean_du2(0.3, 0.1, 0.7, 0.9) < 0.7
+    # mean across both
+    @test CP.compute_mean_du2(0.3, 0.5, 0.7, 0.5) == 0.5
+end;
+
 @testset "no N recycling" begin
     #include("test/test_sesam3CN_sol.jl")
     include("test_sesam3CN_sol.jl")
@@ -117,13 +126,5 @@ end;
     sol = sol2 = solve(prob2, Rodas4());
     #include("test/test_sesam3CN_sol.jl")
     include("test_sesam3CN_sol.jl")
-end
-
-@testset "compute_mean_du2" begin
-    # du2 - mdu < alpha2*mdu: only du1
-    @test 0.6 < CP.compute_mean_du2(0.7, 0.9, 0.3, 0.1) < 0.7
-    # du1 - mdu < alpha2*mdu: only du2
-    @test 0.6 < CP.compute_mean_du2(0.3, 0.1, 0.7, 0.9) < 0.7
-    # mean across both
-    @test CP.compute_mean_du2(0.3, 0.5, 0.7, 0.5) == 0.5
 end;
+

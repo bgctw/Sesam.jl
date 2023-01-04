@@ -50,23 +50,36 @@ end
 function sesam_const_dLRP_relative(dL0, dR0, dP0; name, kwargs...)
     s = sesam3(;name=:s, use_proportional_revenue=true, kwargs...)
     @unpack dec_LPot, dec_RPot, dec_LPPot, dec_RPPot, dec_PPlant, B = s
-    @unpack w_C, w_P, w_N, β_PL, β_PR = s
+    @unpack w_C, w_P, w_N, lim_C, lim_P, lim_N, β_PL, β_PR, β_PB, β_NB = s
+    @unpack ω_Enz, ω_L, ω_R, ω_P = s
+    @unpack ν_TN, ν_TP = s
     ps = @parameters d_L0=dL0 d_R0=dR0 d_P0=dP0
     @parameters t 
     D = Differential(t)
     # there is no clear correspondence to sesam_LRP_deriv.Rmd
     # has to specify something before mutlipyling with enzmye-limitation-factor
     # but after weighting elemental limitations
+    # need to rework dec_LPot so that dec_L matches dL0
     eqs = [
-        dec_LPot ~ d_L0 - d_P0/2*w_P/β_PL, # subtract P flux - wanted to only specify C flux
-        dec_RPot ~ d_R0 - d_P0/2*w_P/β_PR,
         dec_LPPot ~ d_P0/2,
         dec_RPPot ~ d_P0/2,
+        # subtract P flux - because its multiplied by weight > 1 including P flux
+        # dec_LPot ~ d_L0 - dec_LPPot*w_P,#*β_PB/β_PL,  # creates implicit eq.
+        # dec_RPot ~ d_R0 - dec_RPPot*w_P*β_PB/β_PR,
+        # dec_LPot ~ d_L0/ω_L, # creates implicit eq.
+        # dec_RPot ~ d_R0/ω_R,
+        dec_LPot ~ d_L0, 
+        dec_RPot ~ d_R0,
         dec_PPlant ~ 0,
-        D(B) ~ 0,
-        w_C ~ 1,
-        w_P ~ 1,
-        w_N ~ 0,
+         D(B) ~ 0,
+        # # w_C ~ 1,
+        # # w_P ~ 1,
+        # # w_N ~ 0,
+        # # lim_C ~ 1,
+        # # lim_P ~ 1,
+        # # w_N ~ 0,
+        ω_Enz ~ 1, ω_L ~ 1, ω_R ~ 1, ω_P ~ 1,
+        ν_TN ~ 1, ν_TP ~ 1,
     ]
     sys_ext = override(eqs, s; name, ps) # extend does not overwrite
 end
