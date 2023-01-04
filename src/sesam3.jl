@@ -152,7 +152,7 @@ function get_revenue_eq_sesam3CN(sN)
     @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
-        p_uNmic(t), p_oNmic(t),         
+        p_uNmic(t), ν_TN(t),         
         invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
         revenue_sum(t)
@@ -161,11 +161,11 @@ function get_revenue_eq_sesam3CN(sN)
     @variables w_C(t), w_N(t), dα_R(t)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
         invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
         invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
-        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*p_oNmic), 
-        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*p_oNmic),         
+        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*ν_TN), 
+        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*ν_TN),         
         # for compatibility with R and to easier reasoning return equals minearlization
         return_L ~ dec_L * (w_C + w_N/β_NL), 
         return_R ~ dec_R * (w_C + w_N/β_NR), 
@@ -190,7 +190,7 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     @unpack τ, syn_B, B, k_mN_L, k_mN_R = sN
     @unpack u_immNPot, u_PlantN, ν_N = sN
     sts = @variables (begin
-        p_uNmic(t), p_oNmic(t),         
+        p_uNmic(t), ν_TN(t),         
         d_L(t), d_R(t),
         du_L(t), du_R(t), 
         mdu(t), dα_R(t)
@@ -199,9 +199,9 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     @variables lim_C(t), lim_N(t)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,        
-        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*p_oNmic), 
-        # d_R ~ dec_LPot * (lim_C*ϵ + lim_N/β_NR*p_oNmic),         
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
+        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN), 
+        # d_R ~ dec_LPot * (lim_C*ϵ + lim_N/β_NR*ν_TN),         
         d_L ~ dec_LPot * (lim_C + lim_N/β_NL), 
         d_R ~ dec_LPot * (lim_C + lim_N/β_NR),         
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,

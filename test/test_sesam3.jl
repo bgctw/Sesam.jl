@@ -247,7 +247,7 @@ end;
         plot(dPs, getindex.(tmp, 1), label="α_L")
         plot!(dPs, getindex.(tmp, 2), label="α_R")
         plot!(dPs, getindex.(tmp, 3), label="α_P")
-        xlabel!(L"d_P \ (g \, m^{-2} \, yr^{-1})")
+        xlabel!("potential biominaralization "*L"d_P \ (g \, m^{-2} \, yr^{-1})")
         tmp2 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi; use_proportional_revenue=true), dPs) 
         plot!(dPs, getindex.(tmp2, 1), label="α_L rel", linestyle=:dot)
         plot!(dPs, getindex.(tmp2, 2), label="α_R rel", linestyle=:dot)

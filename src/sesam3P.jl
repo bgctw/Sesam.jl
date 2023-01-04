@@ -77,7 +77,7 @@ function get_revenue_eq_sesam3CNP(sP)
         α_LT(t), α_RT(t),
         α_PT(t), 
         syn_Enz_w(t), 
-        p_uPmic(t), p_uNmic(t), p_oPmic(t), p_oNmic(t), 
+        p_uPmic(t), p_uNmic(t), p_oPmic(t), ν_TN(t), 
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_P(t),  revenue_P(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
@@ -88,8 +88,8 @@ function get_revenue_eq_sesam3CNP(sP)
     @variables w_C(t), w_N(t), w_P(t)
     eqs = [
         syn_Enz_w ~ syn_Enz*(w_C + w_N/β_NEnz + w_P/β_PEnz),
-        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*p_oNmic + w_P/β_PL*p_oPmic), 
-        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*p_oNmic + w_P/β_PR*p_oPmic), 
+        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*ν_TN + w_P/β_PL*p_oPmic), 
+        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*ν_TN + w_P/β_PR*p_oPmic), 
         return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
         return_R ~ dec_R * (w_C + w_N/β_NR + w_P/β_PR), 
         # return of enzymes produced in addition to that of plants
@@ -98,7 +98,7 @@ function get_revenue_eq_sesam3CNP(sP)
         p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
-        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,
         #return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * p_uPmic * w_P, 
         return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * w_P, 
         revenue_L ~ return_L / (α_L * syn_Enz_w),
@@ -129,7 +129,7 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
     @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
     sts = @variables (begin
         syn_Enz_w(t), 
-        p_uPmic(t), p_uNmic(t), p_oPmic(t), p_oNmic(t), 
+        p_uPmic(t), p_uNmic(t), p_oPmic(t), ν_TN(t), 
         d_L(t), d_R(t), d_P(t),
         du_L(t), du_R(t), du_P(t),
         mdu(t), dα_R(t), dα_P(t),
@@ -145,9 +145,9 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
         p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         p_oPmic ~ ν_P+(1-ν_P)*p_uPmic,
-        p_oNmic ~ ν_N+(1-ν_N)*p_uNmic,
-        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*p_oNmic + lim_P/β_PL*p_oPmic), 
-        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*p_oNmic + lim_P/β_PR*p_oPmic), 
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,
+        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN + lim_P/β_PL*p_oPmic), 
+        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*ν_TN + lim_P/β_PR*p_oPmic), 
         # d_P ~ dec_PPot * p_uPmic * lim_P, 
         d_L ~ dec_LPot * (lim_C + lim_N/β_NL + lim_P/β_PL), 
         d_R ~ dec_RPot * (lim_C + lim_N/β_NR + lim_P/β_PR), 
