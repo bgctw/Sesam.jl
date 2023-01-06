@@ -84,4 +84,21 @@ function sesam_const_dLRP_relative(dL0, dR0, dP0; name, kwargs...)
     sys_ext = override(eqs, s; name, ps) # extend does not overwrite
 end
 
-
+function sesam_fixed_substrates(s; name=s.name, kwargs...)
+    # keep all the substrate pools fixed and simulate only biomass B and α
+    @unpack L, R, L_N, R_N, I_N, L_P, R_P, I_P = s
+    @parameters t 
+    D = Differential(t)
+    #dR <- dL <- dRN <- dLN <- dRP <- dLP <- dIN <- dIP <- 0
+    eqs = [
+        D(L) ~ 0,
+        D(R) ~ 0,
+        D(L_N) ~ 0,
+        D(R_N) ~ 0,
+        D(I_N) ~ 0,
+        D(L_P) ~ 0,
+        D(R_P) ~ 0,
+        D(I_P) ~ 0,
+        ]
+    sys_ext = override(eqs, s; name) 
+end

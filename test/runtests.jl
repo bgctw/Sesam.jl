@@ -4,6 +4,7 @@ using Test
 using DistributionFits
 using MTKHelpers
 import Sesam as CP
+using ComponentArrays
 
 
 @testset "sesam3_protect" begin
@@ -14,6 +15,12 @@ end;
     #include("test/test_sesam3.jl")        
     include("test_sesam3.jl")        
 end;
+
+@testset "sesam3" begin
+    #include("test/test_sesam3_regressionR.jl")        
+    include("test_sesam3_regressionR.jl")        
+end;
+
 
 @testset "sesam3_revMM" begin
     include("test_sesam3_revMM.jl")        

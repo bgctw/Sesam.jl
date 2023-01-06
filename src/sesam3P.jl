@@ -34,7 +34,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         dec_LPPot ~ (k_LP * L_P),
         dec_RPPot ~ (k_RP * R_P),
         dec_PPot ~ dec_LPPot + dec_RPPot,
-        lim_enz_P ~ (α_P*syn_Enz + s_EP)/(k_mN_P + α_P*syn_Enz + s_EP),
+        lim_enz_P ~ (s_EP + α_P*syn_Enz)/(k_mN_P + s_EP + α_P*syn_Enz),
         dec_LP_P ~ dec_LPPot * lim_enz_P,
         dec_RP_P ~ dec_RPPot * lim_enz_P,
         # although its not linear, estimate biomineralization by plant enzyme production only
@@ -158,7 +158,7 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
         # d_L ~ dec_LPot * (lim_C + lim_N/β_NL + lim_P/β_PL), 
         # d_R ~ dec_RPot * (lim_C + lim_N/β_NR + lim_P/β_PR), 
         d_L ~ dec_LPot * ω_L, 
-        d_R ~ dec_LPot * ω_R, 
+        d_R ~ dec_RPot * ω_R, 
         d_P ~ dec_PPot * ω_P, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
         du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,

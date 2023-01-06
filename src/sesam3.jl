@@ -1,42 +1,4 @@
 function sesam3C(;name, k_N=60.0)
-    # @parameters t [unit = uT]
-    # D = Differential(t)
-
-    # @parameters ϵ ϵ_tvr κ_E a_E [unit = uT^-1] m [unit = uT^-1] τ [unit = uT^-1] 
-    # @parameters k_L [unit = uT^-1] k_R [unit = uT^-1] k_mN [unit = uQ*uT^-1] 
-    # @parameters α_R0
-
-    # # state variables
-    # @variables B(t) [unit = uQ] L(t) [unit = uQ]  R(t) [unit = uQ] α_R(t) cumresp(t) [unit = uQ]
-
-    # @variables α_L(t) tmpNoUnit(t)
-    # # fluxes
-    # @variables (begin
-    #     syn_Enz(t),[unit = uQ/uT], r_M(t),[unit = uQ/uT], tvr_B(t),[unit = uQ/uT],
-    #     dec_LPot(t),[unit = uQ/uT], dec_L(t),[unit = uQ/uT], dec_RPot(t),[unit = uQ/uT],
-    #     dec_R(t),[unit = uQ/uT], u_C(t),[unit = uQ/uT],
-    #     C_synBCt(t),[unit = uQ/uT], C_synBC(t),[unit = uQ/uT], r_G(t),[unit = uQ/uT],
-    #     r_tvr(t),[unit = uQ/uT], syn_B(t),[unit = uQ/uT],
-    #     r_B(t),[unit = uQ/uT], r_GEnz(t),[unit = uQ/uT], r_O(t),[unit = uQ/uT]
-    # end)
-
-    # #------------- N ---------------------
-    # @variables L_N(t) [unit = uQ] R_N(t) [unit = uQ] I_N(t) [unit = uQ]
-    # @variables (begin
-    #     Φ_N(t),[unit = uQ/uT], Φ_Nu(t),[unit = uQ/uT], Φ_NB(t),[unit = uQ/uT], 
-    #     u_PlantN(t),[unit = uQ/uT], u_NOM(t),[unit = uQ/uT], u_immNPot(t),[unit = uQ/uT], 
-    #     u_NPot(t),[unit = uQ/uT], N_synBN(t),[unit = uQ/uT], M_ImbN(t),[unit = uQ/uT], 
-    #     β_NL(t), β_NR(t) 
-    # end)
-    # @parameters β_NEnz β_NB l_N [unit = uT^-1] ν_N i_BN [unit = uT^-1] 
-    
-    # # need to be specified by coupled system:
-    # @variables (begin
-    #     i_L(t),[unit = uQ/uT], β_Ni(t), i_IN(t),[unit = uQ/uT],
-    #     u_PlantNmax(t),[unit = uQ/uT], k_PlantN(t),[unit = uT^-1]
-    # end) 
-
-    # replace patttern to remove units: ,?\[unit[^\]]+\]
     @parameters t 
     D = Differential(t)
 
@@ -68,7 +30,7 @@ function sesam3C(;name, k_N=60.0)
     eqs = [
         D(B) ~ dB, dB ~ syn_B - tvr_B,
         D(L) ~ dL, dL ~ -dec_L + i_L,
-        D(R) ~ dR, dR ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*syn_Enz,
+        D(R) ~ dR, dR ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*tvr_Enz,
         syn_Enz ~ a_E*B, tvr_Enz ~ syn_Enz,
         r_M ~ m*B,
         # element resorption changes stoichiometry: β_EB -> β_EBtvr
@@ -208,9 +170,9 @@ function get_revenue_eq_sesam3CN_deriv(sN)
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
         # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN), 
-        # d_R ~ dec_LPot * (lim_C*ϵ + lim_N/β_NR*ν_TN),         
+        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*ν_TN),         
         # d_L ~ dec_LPot * (lim_C + lim_N/β_NL), 
-        # d_R ~ dec_LPot * (lim_C + lim_N/β_NR),  
+        # d_R ~ dec_RPot * (lim_C + lim_N/β_NR),  
         d_L ~ dec_LPot * ω_L, 
         d_R ~ dec_RPot * ω_R, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,

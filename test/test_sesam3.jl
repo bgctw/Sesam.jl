@@ -4,6 +4,7 @@ using ModelingToolkit, DifferentialEquations
 
 @named s = sesam3()
 @named pl = plant_const_balanced()
+@named plc = plant_const(;name=:pl)
 
 @named sp = plant_sesam_system(s,pl)
 states(sp)
@@ -204,6 +205,8 @@ end;
     dR = 0.5
     dP = 1.0
     B0 = 1.0
+    s_EP = 0.0 #0.2
+    kwargs = (;)
     sLRP = CP.sesam_const_dLRP(dL,dR, dP; name=:s, kwargs...)
     @named spLRP = plant_sesam_system(sLRP,pl)
     sLRP_r = CP.sesam_const_dLRP_relative(dL,dR, dP; name=:s, kwargs...) 
@@ -253,7 +256,10 @@ end;
         plot(dPs, getindex.(tmp, 1), label="α_L")
         plot!(dPs, getindex.(tmp, 2), label="α_R")
         plot!(dPs, getindex.(tmp, 3), label="α_P")
-        xlabel!("potential biominaralization "*L"d_P \ (g \, m^{-2} \, yr^{-1})")
+        #L is a macro and must be resolved also during precompilation
+        # but LaTeXStrings should not be part of Project.toml
+        #xlabel!("potential biominaralization "*L"d_P \ (g \, m^{-2} \, yr^{-1})")
+        xlabel!("potential biominaralization "*"d_P (g/m2/yr)")
         tmp2 = map(dPi -> calc_alpha3_proptoderiv(dL, dR, dPi; use_proportional_revenue=true), dPs) 
         plot!(dPs, getindex.(tmp2, 1), label="α_L rel", linestyle=:dot)
         plot!(dPs, getindex.(tmp2, 2), label="α_R rel", linestyle=:dot)
@@ -273,5 +279,4 @@ end;
         plot!(dPs, getindex.(tmp5, 3), label="α_P rel,lowB", linestyle=:dashdot)
     end
 end;
-
 
