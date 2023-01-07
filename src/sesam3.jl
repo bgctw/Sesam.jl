@@ -115,7 +115,7 @@ function get_revenue_eq_sesam3CN(sN)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, τ, syn_B, B, ϵ = sN
     @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN
-    @unpack lim_C, lim_N, ω_Enz, ω_L, ω_R = sN
+    @unpack ω_Enz, ω_L, ω_R = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
         p_uNmic(t), 
@@ -157,7 +157,7 @@ end
 function get_revenue_eq_sesam3CN_deriv(sN)
     @parameters t 
     @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, ϵ = sN
-    @unpack lim_C, lim_N, ω_Enz, ω_L, ω_R = sN
+    @unpack ω_Enz, ω_L, ω_R = sN
     @unpack τ, syn_B, B, k_mN_L, k_mN_R = sN
     @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN
     sts = @variables (begin
@@ -169,10 +169,6 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     eqs = [
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
-        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN), 
-        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*ν_TN),         
-        # d_L ~ dec_LPot * (lim_C + lim_N/β_NL), 
-        # d_R ~ dec_RPot * (lim_C + lim_N/β_NR),  
         d_L ~ dec_LPot * ω_L, 
         d_R ~ dec_RPot * ω_R, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,

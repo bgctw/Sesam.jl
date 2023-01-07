@@ -16,7 +16,7 @@ end;
     include("test_sesam3.jl")        
 end;
 
-@testset "sesam3" begin
+@testset "sesam3 regression to R" begin
     #include("test/test_sesam3_regressionR.jl")        
     include("test_sesam3_regressionR.jl")        
 end;

@@ -40,11 +40,13 @@ function sesam3C_revMM(;name, k_N=60.0)
     @parameters t 
     D = Differential(t)
 
-    @parameters ϵ ϵ_tvr κ_E a_E  m  τ  
-    @parameters k_L  k_R  k_mN_L k_mN_R k_N=k_N
-    @parameters α_R0
+    ps = @parameters(
+        ϵ, ϵ_tvr, κ_E, a_E,  m,  τ,  
+        k_L,  k_R,  k_mN_L, k_mN_R, k_N=k_N,
+        #ρ_CBtvr = 0.0, # proportion of carbon resorption on turnover
+    )    
 
-    @variables (begin
+    sts = @variables (begin
         B(t),  L(t),   R(t),  cumresp(t),
         dB(t), dL(t), dR(t), r_tot(t),
         syn_Enz(t), tvr_Enz(t), r_M(t), tvr_B(t),
@@ -57,7 +59,9 @@ function sesam3C_revMM(;name, k_N=60.0)
         # need to be defined by component across all elements
         α_L(t), α_R(t),
         # need to be specified by coupled system:
-        i_L(t), syn_B(t) 
+        i_L(t), syn_B(t),
+        ω_Enz(t), ω_L(t), ω_R(t),
+        ν_TN(t)      
     end)
 
     eqs = [
@@ -87,7 +91,7 @@ function sesam3C_revMM(;name, k_N=60.0)
         E_L ~ (α_L * syn_Enz)/k_N,
         E_R ~ (α_R * syn_Enz)/k_N,
         ]
-    ODESystem(eqs; name)    
+    ODESystem(eqs, t, sts, ps; name)    
 end
 
 function sesam3N_revMM(;name, sC = sesam3C_revMM(name=:sC))
@@ -134,7 +138,10 @@ end
 function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=sesam3N_revMM(name=:sN))
     @parameters t 
     D = Differential(t)
-    @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ = sN
+    @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B, τ, ϵ = sN
+    @unpack β_NB, β_NEnz, β_NL, β_NR = sN
+    @unpack ω_Enz, ω_L, ω_R = sN
+    @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN    
     sts = @variables (begin
         C_synBN(t), 
         C_synBmC(t), C_synBmN(t),
@@ -145,6 +152,9 @@ function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=ses
     eqs_rev, sts_rev = use_seam_revenue ? 
         get_revenue_eq_seam(sN) : get_revenue_eq_sesam3CN(sN)
     @variables α_LT(t) α_RT(t)
+    lim_E = SA[lim_C, lim_N]
+    β_B = SA[1.0, β_NB]
+    ν_TZ = SA[ϵ, ν_TN] 
     eqs = [
         C_synBN ~ β_NB*N_synBN,
         syn_B ~ min(C_synBC, C_synBN), 
@@ -159,6 +169,9 @@ function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=ses
         # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
         # α_LT, α_RT by get_revenue_eq_X
+        ω_Enz ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NEnz], β_B),
+        ω_L ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NL], β_B, ν_TZ),
+        ω_R ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NR], β_B, ν_TZ),
         D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         D(α_R) ~ dα_R #, dα_R ~ (α_RT - α_R)*(τ + abs(syn_B)/B),
         ]
