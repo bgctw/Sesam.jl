@@ -38,7 +38,7 @@ p = pC = Dict(
     s.k_R => 1/(20.0),        ##<< 1/(x years) # to demonstrate changes on short time scale
     s.k_mN_L => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
-    #s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
+        #s.k_mN_R => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
     s.ϵ => 0.5,      ##<< carbon use efficiency for growth respiration
     #i_L => t -> 1 - exp(-t),  # litter input
@@ -71,6 +71,7 @@ pP = Dict(
     s.ν_P =>  0.9,     # microbial P use efficiency accounting for apparent 
     # mineralization, pertains only to SOM depolimerization, biomineralization is 
     # all mineralized
+    s.β_Pm => 500, # at a c:P ratio of 500 depolimerization rate decreases to 1/2
     # s.k_mN_Pl => 0.05 * 60, # enzyme half-saturation constant, in magnitude of enzymes * 
         # /yr enzyme turnover 60 times a year
 )

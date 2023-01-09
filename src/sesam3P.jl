@@ -13,6 +13,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         resorp_P(t), β_PBtvr(t),
         α_P(t), lim_enz_P(t), dec_LPPot(t), dec_RPPot(t), dec_PPot(t),
         dec_LP_P(t), dec_RP_P(t), dec_PPlant(t), 
+        lim_LP(t), lim_RP(t),
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
@@ -20,9 +21,11 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t),
         lim_P(t), ω_P(t), ν_TP(t)
     end)
-    ps = @parameters β_PEnz β_PB l_P  ν_P i_BN i_BP k_LP k_RP k_mN_P ρ_PBtvr=0.0
+    ps = @parameters(
+        β_PEnz, β_PB, l_P,  ν_P, i_BN, i_BP, k_LP, k_RP, k_mN_P, β_Pm, ρ_PBtvr=0.0) 
 
-    @unpack L, R, B, SOC, SON, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, tvr_B0, syn_Enz, tvr_Enz, r_tvr, κ_E = sN
+    @unpack L, R, B, SOC, SON, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, syn_B, tvr_B0 = sN 
+    @unpack syn_Enz, tvr_Enz, r_tvr, κ_E = sN
     @unpack β_NB, β_Ni, L_N, R_N = sN
     @unpack k_mN_L, k_mN_R = sN
 
@@ -31,8 +34,10 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + ϵ_tvr*tvr_B/β_PBtvr + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        dec_LPPot ~ (k_LP * L_P),
-        dec_RPPot ~ (k_RP * R_P),
+        lim_LP ~ 1/(1 + β_PL/β_Pm),
+        lim_RP ~ 1/(1 + β_PR/β_Pm),
+        dec_LPPot ~ (k_LP * L_P * lim_LP),
+        dec_RPPot ~ (k_RP * R_P * lim_RP),
         dec_PPot ~ dec_LPPot + dec_RPPot,
         lim_enz_P ~ (s_EP + α_P*syn_Enz)/(k_mN_P + s_EP + α_P*syn_Enz),
         dec_LP_P ~ dec_LPPot * lim_enz_P,

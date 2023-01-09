@@ -72,6 +72,7 @@ parms = Dict(
     , pl.β_Pi0 => 40*6  # to make real P limitation possible
     , s.i_BP => 0.4 #0.38 * 10.57 # start with same as N
     , pl.s_EP0 => 0.3*0.01*365 /20  ##<< 1/10 of kmn: /yr enzyme turnover 1% turning over each day
+    ,s.β_Pm => 500 # at a c:P ratio of cpm biomineralization rate decreases to 1/2
 )
 parms[s.k_mN_R] = parms[s.k_mN_L]  
 merge!(parms, Dict(
@@ -156,8 +157,8 @@ end;
     probFS = ODEProblem(spFS, x0Plim, tspan, parms)
     sol = solLRP = solve(probFS, Rodas4());
     # see Sesam R project test_modSesam3P.R
-    @test isapprox(sol[s.B][end],0.01036275 , atol=1e-5)
-    @test isapprox(sol[s.α_P][end],0.69196173, atol=1e-5)
+    @test isapprox(sol[s.B][end],0.01057638  , atol=1e-5)
+    @test isapprox(sol[s.α_P][end],0.68570386, atol=1e-5)
 end;
 
 @testset "regression to R version, variable substrates" begin
@@ -199,20 +200,14 @@ end;
     sol = solLRP = solve(prob, Rodas4());
     # see Sesam R project test_modSesam3P.R
     # TODO not equal
-    @test isapprox(sol[s.B][end],3.6041840   , atol=1e-5)
-    @test isapprox(sol[s.α_P][end],0.5543881, atol=1e-5)
+    @test isapprox(sol[s.B][end],5.4722157    , atol=1e-5)
+    @test isapprox(sol[s.α_P][end],0.4034128, atol=1e-5)
 end;
 
 
 tmpf = () -> begin
     # using Plots
     #plot(sol, idxs=[s.L]) # constant
-    ts = (0,0.02)
-    ts = (0,2)
-    ts = (0,0.07)
-    ts = (0,min(20.0, sol.t[end]))
-    ts = (0,min(200.0, sol.t[end]))
-    ts = (0,min(2000.0, sol.t[end]))
     [sol[s.dα_R][1], sol[s.dα_P][1]]
     [sol[s.C_synBC][1],  sol[s.C_synBN][1], sol[s.C_synBP][1]]
     sol[s.r_M][1]
@@ -244,12 +239,19 @@ tmpf = () -> begin
     parms[s.k_mN_P]
     parms[s.β_PB]
     parms[s.ν_N]
+    ts = (0,0.02)
+    ts = (0,2)
+    ts = (0,0.07)
+    ts = (0,min(20.0, sol.t[end]))
+    ts = (0,min(200.0, sol.t[end]))
+    ts = (0,min(2000.0, sol.t[end]))
     plot(sol, idxs=[s.B], tspan=ts)
     plot(sol, idxs=[s.α_L], tspan=ts)
     plot(sol, idxs=[s.α_R], tspan=ts)
     plot(sol, idxs=[s.dα_R], tspan=ts)
     plot(sol, idxs=[s.α_L, s.α_R, s.α_P], tspan=ts)
     plot(sol, idxs=[s.lim_C, s.lim_N, s.lim_P], tspan=ts)
+    plot(sol, idxs=[s.lim_LP, s.lim_RP], tspan=ts)
     plot(sol, idxs=[s.L], tspan=ts)
     plot(sol, idxs=[s.R], tspan=ts)
     plot(sol, idxs=[s.R_P], tspan=ts)
