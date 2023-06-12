@@ -3,7 +3,7 @@ using ModelingToolkit, DifferentialEquations
 using Test
 using DistributionFits
 using MTKHelpers
-import Sesam as CP
+using Sesam: Sesam as CP
 using ComponentArrays
 
 

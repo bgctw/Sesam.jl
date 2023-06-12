@@ -1,5 +1,5 @@
 using Sesam
-import Sesam as CP
+using Sesam: Sesam as CP
 using ModelingToolkit, DifferentialEquations
 
 @named s = sesam3()
@@ -165,6 +165,16 @@ end;
     p_sym = Dict(Symbol(k) => v for (k,v) in p)
     β_PR2 = calculate_β_PR_sesam3(p_sym)
     @test β_PR2 == β_PR
+end;
+
+@testset "calculate_propR" begin
+    p_sym = ComponentVector(
+        pl₊β_Ni0 = 60.0, s₊β_NB = 16, s₊β_NEnz=3.1,
+        s₊a_E = 0.365, s₊κ_E = 0.8, s₊ϵ_tvr = 0.45, s₊τ = 6.1
+        )
+    pR = calculate_propR(p_sym, 25.0)
+    #@test pR ≈ 0.51 atol=0.005 # without accounting for enzyme contribution
+    @test pR ≈ 0.44 atol=0.005
 end;
 
 @testset "compute_mean_du3" begin

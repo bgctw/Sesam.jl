@@ -7,12 +7,14 @@ using Distributions
 using MTKHelpers
 using StaticArrays
 using FillArrays
+using Infiltrator
 
 export plant_const, plant_const_balanced, 
     plant_face, plant_face_fluct, plant_face_fluct_fake,
     sesam3, seam3, sesam3CN, plant_sesam_system,
     sesam3_protect, sesam3_revMM
-export calculate_β_NR_sesam3, calculate_β_PR_sesam3
+export calculate_β_NR_sesam3, calculate_β_PR_sesam3, calculate_propR
+export get_updated_Penz_pars
 #export smoothstep
 #export SystemParUpdater
 

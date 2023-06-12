@@ -34,7 +34,8 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_L/β_Pi,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + ϵ_tvr*tvr_B/β_PBtvr + (1-κ_E)*tvr_Enz/β_PEnz,
         D(I_P) ~ dI_P,
-        lim_LP ~ 1/(1 + β_PL/β_Pm),
+        # potential rate of biomineralization decreases with  increasing C:P ratio β_PS
+        lim_LP ~ 1/(1 + β_PL/β_Pm), 
         lim_RP ~ 1/(1 + β_PR/β_Pm),
         dec_LPPot ~ (k_LP * L_P * lim_LP),
         dec_RPPot ~ (k_RP * R_P * lim_RP),
@@ -284,13 +285,24 @@ function calculate_β_PR_sesam3(p_sym)
     β_PR = 1/((w_REnz/p_sym[:s₊β_PEnz] + w_RBtvr/β_PBtvr)/(w_REnz + w_RBtvr))
 end
 
+"""
+    get_updated_Penz_pars(pDict, s)
+
+Create a copy of parameters and set k_mN_P, k_LP, and k_RP 
+to values of the L/R enzymes.
+"""
 function get_updated_Penz_pars(pDict, s)
-    # create a copy of parameters and set k_mN_P, k_LP, and k_RP 
-    # to values of the L/R enzymes
     p = copy(pDict)
     p[s.k_mN_P] = p[s.k_mN_R] 
     p[s.k_RP] = p[s.k_R] 
     p[s.k_LP] = p[s.k_L] 
+    p
+end
+function get_updated_Penz_pars(p_sym)
+    p = copy(p_sym)
+    p[:s₊k_mN_P] = p[:s₊k_mN_R] 
+    p[:s₊k_RP] = p[:s₊k_R] 
+    p[:s₊k_LP] = p[:s₊k_L] 
     p
 end
 

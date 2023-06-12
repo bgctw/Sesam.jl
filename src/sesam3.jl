@@ -265,16 +265,43 @@ function calculate_β_NR_sesam3(p,s)
 end
 
 function calculate_β_NR_sesam3(p_sym)
-    w_REnz = p_sym[:s₊a_E]*(1-p_sym[:s₊κ_E]) # a_E (1-κ_E) B
+    pREnz = calculate_shareEnzTvr(p_sym)
+    β_NBtvr = calculate_β_NBtvr(p_sym)
+    β_NR = 1/(pREnz/p_sym[:s₊β_NEnz] + (1-pREnz)/β_NBtvr)
+end
+
+"Calculate the share of enzymes tvr contributing to total tvr in addition to biomass"
+function calculate_shareEnzTvr(p_sym)
+    w_REnz = p_sym[:s₊a_E]*(1-p_sym[:s₊κ_E])    # a_E (1-κ_E) B
     w_RBtvr = p_sym[:s₊ϵ_tvr]*p_sym[:s₊τ]       # τ ϵ_tvr B
-    # β_NBtvr may differ from β_NB because of elemental resorption
+    w_REnz/(w_REnz + w_RBtvr)
+end
+
+"""
+Calculate the C/N ratio of microbial biomass turnover.
+It may differ from β_NB because of elemental resorption.
+"""
+function calculate_β_NBtvr(p_sym)
     # if ρ is not in parameter dictionary, its default is zero
     ρ_CBtvr = (haskey(p_sym, :s₊ρ_CBtvr)) ? p_sym[:s₊ρ_CBtvr] : 0.0
     ρ_NBtvr = (haskey(p_sym, :s₊ρ_NBtvr)) ? p_sym[:s₊ρ_NBtvr] : 0.0
-    β_NBtvr = p_sym[:s₊β_NB] * (1-ρ_CBtvr)/(1-ρ_NBtvr)
-    β_NR = 1/((w_REnz/p_sym[:s₊β_NEnz] + w_RBtvr/β_NBtvr)/(w_REnz + w_RBtvr))
+    p_sym[:s₊β_NB] * (1-ρ_CBtvr)/(1-ρ_NBtvr)
 end
 
+"""
+Given the C/N ratio of total SOM, litter input and input to R: tvr of B and Enz
+calculate the proportion of residue pool R to total SOM
+"""
+function calculate_propR(p_sym, β_NSOM; β_L = p_sym[:pl₊β_Ni0])
+    β_NBtvr = calculate_β_NBtvr(p_sym)
+    β_NEnz = p_sym[:s₊β_NEnz]
+    pREnz = calculate_shareEnzTvr(p_sym)
+    # y is the inverse of C/N ratio beta: N:C
+    yR = (1-pREnz)/β_NBtvr + pREnz/β_NEnz
+    yS = 1/β_NSOM
+    yL = 1/β_L
+    (yS - yL)/(yR - yL)
+end
 
 
 
