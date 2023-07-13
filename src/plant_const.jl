@@ -116,6 +116,9 @@ function plant_const_balanced(;name)
         k_PlantN ~ k_PlantN0,
         β_Pi ~ β_Pi0,
         i_IP ~ i_IP0, 
+        # simulate plant P uplift by decreasing uptake rate from upper layer
+        # compared to litter input: positive imbalance -> more in litter than
+        # taken up from upper layer
         u_PlantPmax ~ i_L0 / β_Pi0 - imbalance_P ,
         k_PlantP ~ k_PlantP0,
         s_EP ~ s_EP0, 

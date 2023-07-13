@@ -5,6 +5,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
     sts = @variables (begin
         L_P(t),  R_P(t),  I_P(t), 
         dL_P(t),  dR_P(t),  dI_P(t),
+        i_LP(t), tvr_P(t), tvr_Enz_P(t),
         Φ_P(t), Φ_Pu(t), Φ_PB(t), Φ_Ptvr(t),
         u_PlantP(t), u_POM(t), u_immPPot(t), 
         u_PPot(t), P_synBP(t), M_ImbP(t), 
@@ -15,7 +16,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         dec_LP_P(t), dec_RP_P(t), dec_PPlant(t), 
         lim_LP(t), lim_RP(t),
         # need to be specified by coupled system:
-        β_Pi(t), i_IP(t),
+        β_Pi(t), i_IP(t), 
         u_PlantPmax(t), k_PlantP(t),
         s_EP(t), pL_sEP(t), # synthesis of E_LP adn E_RP enzymes by plants
         SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t),
@@ -31,9 +32,10 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
 
     eqs = [
         β_PL ~ L/L_P, β_PR ~ R/R_P,
-        D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_L/β_Pi,
-        D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + ϵ_tvr*tvr_B/β_PBtvr + (1-κ_E)*tvr_Enz/β_PEnz,
+        D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_LP,
+        D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + tvr_P + tvr_Enz_P,
         D(I_P) ~ dI_P,
+        i_LP ~ i_L/β_Pi, tvr_P ~ ϵ_tvr*tvr_B/β_PBtvr, tvr_Enz_P ~ (1-κ_E)*tvr_Enz/β_PEnz,
         # potential rate of biomineralization decreases with  increasing C:P ratio β_PS
         lim_LP ~ 1/(1 + β_PL/β_Pm), 
         lim_RP ~ 1/(1 + β_PR/β_Pm),
@@ -168,6 +170,7 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
         d_P ~ dec_PPot * ω_P, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
         du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
+        # TODO here only k_mN_R (assume k_mN_L same)
         du_P ~ syn_Enz*k_mN_R*d_P/(s_EP + k_mN_P + α_P*syn_Enz)^2,
         mdu ~ compute_mean_du3(du_L, α_L, du_R, α_R, du_P, α_P),
         τsyn ~ τ + abs(syn_B)/B,
