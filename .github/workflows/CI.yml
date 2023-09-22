@@ -58,10 +58,11 @@ jobs:
       - uses: julia-actions/setup-julia@v1
         with:
           version: '1'
-      - run: |
-          julia --project=. -e '
-            using Pkg
-            Pkg.develop(url="https://github.com/bgctw/MTKHelpers.jl.git")'
+      # use the master instead of the registered version
+      # - run: |
+      #     julia --project=. -e '
+      #       using Pkg
+      #       Pkg.develop(url="https://github.com/bgctw/MTKHelpers.jl.git")'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-docdeploy@v1
         env:
