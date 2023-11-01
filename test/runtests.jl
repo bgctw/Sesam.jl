@@ -23,6 +23,7 @@ end;
 
 
 @testset "sesam3_revMM" begin
+    #include("test/test_sesam3_revMM.jl")        
     include("test_sesam3_revMM.jl")        
 end;
 

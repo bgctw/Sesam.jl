@@ -15,6 +15,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         α_P(t), lim_enz_P(t), dec_LPPot(t), dec_RPPot(t), dec_PPot(t),
         dec_LP_P(t), dec_RP_P(t), dec_PPlant(t), 
         lim_LP(t), lim_RP(t),
+        p_uPmic(t), ν_TP(t), 
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t), 
         u_PlantPmax(t), k_PlantP(t),
@@ -64,6 +65,9 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         # make sure ρ_PBtvr >= 0
         resorp_P ~ ρ_PBtvr * tvr_B0/β_PB,
         β_PBtvr ~ tvr_B / (tvr_B0/β_PB - resorp_P),
+        # loss by indirect pathway
+        ν_TP ~ ν_P+(1-ν_P)*p_uPmic,
+        p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
         # observables for diagnostic output
         SOP ~ L_P + R_P + B/β_PB,
         β_PSOM ~ SOC/SOP,
@@ -82,12 +86,11 @@ function get_revenue_eq_sesam3CNP(sP)
     @unpack β_PL, β_PR, β_PB, β_PEnz = sP
     @unpack lim_C, lim_N, lim_P, ω_Enz, ω_L, ω_R, ω_P = sP
     @unpack α_P, dec_LP_P, dec_RP_P, dec_PPlant, syn_B, B, τ = sP
-    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
+    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_TN, ν_TP = sP
     sts = @variables (begin
         α_LT(t), α_RT(t),
         α_PT(t), 
         syn_Enz_w(t), 
-        p_uPmic(t), p_uNmic(t), ν_TP(t), ν_TN(t), 
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_P(t),  revenue_P(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
@@ -110,10 +113,6 @@ function get_revenue_eq_sesam3CNP(sP)
         # return of enzymes produced in addition to that of plants
         # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
         # TODO dec_LP_P is already in P units, no need to devide by β_P
-        p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
-        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        ν_TP ~ ν_P+(1-ν_P)*p_uPmic,
-        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,
         #return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * p_uPmic * w_P, 
         return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * ω_P,
         revenue_L ~ return_L / (α_L * syn_Enz_w),
@@ -155,11 +154,6 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
     eqs = [
         syn_Enz_w ~ syn_Enz*(lim_C + lim_N/β_NEnz + lim_P/β_PEnz),
         # return of enzymes produced in addition to that of plants
-        # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
-        p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
-        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        ν_TP ~ ν_P+(1-ν_P)*p_uPmic,
-        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,
         # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN + lim_P/β_PL*ν_TP), 
         # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*ν_TN + lim_P/β_PR*ν_TP), 
         # d_P ~ dec_PPot * p_uPmic * lim_P, 
@@ -181,19 +175,31 @@ function get_revenue_eq_sesam3CNP_deriv(sP)
     (;eqs, sts)
 end
 
+"""  
+    compute_mean_du3(du1, α1, du2, α2, du3, α3; sum_α_others=0)
+
+Compute mean across derivates, du, with checking exluding enzymes for 2 enzymes
+Given derivates du1, du2, du3 and allocations α1, α2, α3.
+(Wutzler22 Appendix D1)
+
+sum_α_others: allocation to enzymes that should be excluded from the mean
+
+Checks all the combinations of relative change of du being smaller than -α_Z
+"""
 function compute_mean_du3(du1, α1, du2, α2, du3, α3; sum_α_others=0)
-    mdu = (du1 + du2 + du3)/3
-    m1 = IfElse.ifelse( (du3 - mdu) <= -α3 * mdu, compute_mean_du2(
-        du1, α1, du2, α2; sum_α_others=sum_α_others+α3), 
-        IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, compute_mean_du2(
-            du1, α1, du3, α3; sum_α_others=sum_α_others+α2), 
-            IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, compute_mean_du2(
-                du2, α2, du3, α3; sum_α_others=sum_α_others+α1), 
-                3*mdu/(3+sum_α_others)
+    mdu_raw = (du1 + du2 + du3) / 3
+    mdu3 = 3 * mdu_raw / (3 + sum_α_others) # adjust for otherwise excluded enzymes
+    mdu = IfElse.ifelse((du3 - mdu3) <= -α3 * mdu3, compute_mean_du2( # exclude enzyme 3
+            du1, α1, du2, α2; sum_α_others=sum_α_others + α3),     # and check remaining two
+        IfElse.ifelse((du2 - mdu3) <= -α2 * mdu3, compute_mean_du2( # exclude enzyme 2
+                du1, α1, du3, α3; sum_α_others=sum_α_others + α2),
+            IfElse.ifelse((du1 - mdu3) <= -α1 * mdu3, compute_mean_du2( # exclude enzyme 1
+                    du2, α2, du3, α3; sum_α_others=sum_α_others + α1),
+                mdu3 # exclude none
             )
         )
     )
-    m1
+    mdu
 end
 
 function sesam3CNP(;name, δ=40.0, max_w=12, use_proportional_revenue=false, sP=sesam3P(name=:sP))

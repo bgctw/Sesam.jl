@@ -1,3 +1,4 @@
+# N-version used in seam, not affacted by further developments of sesam3?
 function sesam3C_revMM(;name, k_N=60.0)
     # @parameters t [unit = uT]
     # D = Differential(t)
@@ -106,6 +107,7 @@ function sesam3N_revMM(;name, sC = sesam3C_revMM(name=:sC))
         u_NPot(t), N_synBN(t), M_ImbN(t), 
         β_NL(t), β_NR(t),
         leach_N(t),
+        p_uNmic(t), ν_TN(t),
         # need to be specified by coupled system:
         β_Ni(t), i_IN(t),
         u_PlantNmax(t), k_PlantN(t)
@@ -131,6 +133,8 @@ function sesam3N_revMM(;name, sC = sesam3C_revMM(name=:sC))
         N_synBN ~ u_NPot - syn_Enz/β_NEnz,
         M_ImbN ~ u_NPot - (syn_B/β_NB + syn_Enz/β_NEnz),
         Φ_NB ~ M_ImbN - u_immNPot,
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
         ]
     extend(ODESystem(eqs, t, sts, ps; name), sC)
 end

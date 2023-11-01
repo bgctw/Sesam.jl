@@ -23,8 +23,7 @@ function sesam3C(;name, k_N=60.0)
         α_L(t), α_R(t), 
         # need to be specified by coupled system:
         i_L(t), syn_B(t),
-        ω_Enz(t), ω_L(t), ω_R(t),
-        ν_TN(t)      
+        ω_Enz(t), ω_L(t), ω_R(t)
     end)
 
     eqs = [
@@ -73,6 +72,7 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         β_NL(t), β_NR(t),
         leach_N(t),
         resorp_N(t), β_NBtvr(t),
+        p_uNmic(t), ν_TN(t),
         # need to be specified by coupled system:
         β_Ni(t), i_IN(t),
         u_PlantNmax(t), k_PlantN(t),
@@ -102,6 +102,8 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         # make sure ρ_NBtvr >= 0
         resorp_N ~ ρ_NBtvr * tvr_B0/β_NB,
         β_NBtvr ~ tvr_B / (tvr_B0/β_NB - resorp_N),
+        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
+        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
         # observables for diagnostic output
         SOC ~ L + R + B,
         SON ~ L_N + R_N + B/β_NB,
@@ -118,7 +120,6 @@ function get_revenue_eq_sesam3CN(sN)
     @unpack ω_Enz, ω_L, ω_R = sN
     sts = @variables (begin
         α_LT(t), α_RT(t),
-        p_uNmic(t), 
         invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
         revenue_sum(t), ω_Enz(t), ω_L(t), ω_R(t)
@@ -126,17 +127,8 @@ function get_revenue_eq_sesam3CN(sN)
     # need to be defined in coupled component:
     @variables w_C(t), w_N(t), dα_R(t)
     eqs = [
-        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
-        # invest_L ~ α_L*syn_Enz*(w_C + w_N/β_NEnz),
-        # invest_R ~ α_R*syn_Enz*(w_C + w_N/β_NEnz),
         invest_L ~ α_L*syn_Enz * ω_Enz,   
         invest_R ~ α_R*syn_Enz * ω_Enz,
-        # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*ν_TN), 
-        # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*ν_TN),         
-        # for compatibility with R and to easier reasoning return equals minearlization
-        # return_L ~ dec_L * (w_C + w_N/β_NL), 
-        # return_R ~ dec_R * (w_C + w_N/β_NR), 
         return_L ~ dec_L * ω_L,  
         return_R ~ dec_R * ω_R, 
         revenue_L ~ return_L / invest_L,
@@ -161,26 +153,43 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     @unpack τ, syn_B, B, k_mN_L, k_mN_R = sN
     @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN
     sts = @variables (begin
-        p_uNmic(t),        
         d_L(t), d_R(t),
         du_L(t), du_R(t), 
         mdu(t), dα_R(t)
     end)
     eqs = [
-        p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
-        ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
         d_L ~ dec_LPot * ω_L, 
         d_R ~ dec_RPot * ω_R, 
         du_L ~ syn_Enz*k_mN_L*d_L/(k_mN_L + α_L*syn_Enz)^2,
         du_R ~ syn_Enz*k_mN_R*d_R/(k_mN_R + α_R*syn_Enz)^2,
-        # TODO exclude enzymes from the mix
-        #mdu ~ (du_L + du_R)/2,
-        #mdu ~ compute_mean_du(SA[du_L, du_R], SA[α_L, α_L]),
         mdu ~ compute_mean_du2(du_L, α_L, du_R, α_R),
         dα_R ~ (τ + abs(syn_B)/B)*max((du_R - mdu)/mdu, -α_R)
         ]
     (;eqs, sts)
 end
+
+"""  
+    compute_mean_du2(du1, α1, du2, α2; sum_α_others=0)
+
+Compute mean across derivates, du, with checking exluding enzymes for 2 enzymes
+Given derivates du1, du2 and allocations α1 and α2.
+(Wutzler22 Appendix D1)
+
+sum_α_others: allocation to enzymes that should be excluded from the mean
+
+Checks all the combinations of relative change of du being smaller than -α_Z
+"""
+function compute_mean_du2(du1, α1, du2, α2; sum_α_others=0)
+    mdu_raw = (du1 + du2)/2
+    mdu2 = 2*mdu_raw/(2+sum_α_others) # both enzymes, adjusted for otherwise excluded enzymes
+    mdu = IfElse.ifelse((du2 - mdu2) <= -α2 * mdu2, du1 / (1 + α2 + sum_α_others), # only first enzyme
+        IfElse.ifelse( (du1 - mdu2) <= -α1 * mdu2, du2/(1+α1+sum_α_others), # only second enzyme
+            mdu2)
+    )
+    mdu
+end
+
+
 
 """  
 compute elemental-limitation weighting factor omega_Z
@@ -195,15 +204,6 @@ function compute_elemental_weightfactor(lim_E, betaZ, β_B,
   sum(wE)
 end
 
-function compute_mean_du2(du1, α1, du2, α2; sum_α_others=0)
-    mdu = (du1 + du2)/2
-    mdu1 = IfElse.ifelse( (du2 - mdu) <= -α2 * mdu, du1/(1+α2+sum_α_others),
-        IfElse.ifelse( (du1 - mdu) <= -α1 * mdu, du2/(1+α1+sum_α_others), 
-            2*mdu/(2+sum_α_others))
-    )
-    mdu1
-end
-
 function sesam3CN(;name, δ=40.0, max_w=12, 
     use_seam_revenue=false, use_proportional_revenue=false, sN=sesam3N(name=:sN))
     @parameters t 
@@ -211,7 +211,7 @@ function sesam3CN(;name, δ=40.0, max_w=12,
     @unpack α_L, α_R, syn_B, B, C_synBC, N_synBN, tvr_B, τ, ϵ = sN
     @unpack β_NB, β_NEnz, β_NL, β_NR = sN
     @unpack lim_C, lim_N, ω_Enz, ω_L, ω_R = sN
-    @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN    
+    @unpack u_immNPot, u_PlantN, ν_TN = sN    
     sts = @variables (begin
         C_synBN(t), 
         #dα_L(t), 
