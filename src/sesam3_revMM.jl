@@ -57,12 +57,13 @@ function sesam3C_revMM(;name, k_N=60.0)
         C_synBCt(t), C_synBC(t), r_G(t),
         r_tvr(t), 
         r_B(t), r_GEnz(t), r_O(t),
-        # need to be defined by component across all elements
         α_L(t), α_R(t),
-        # need to be specified by coupled system:
-        i_L(t), syn_B(t),
+        # equations need to be defined by component across all elements
+        syn_B(t), sum_w(t),
         ω_Enz(t), ω_L(t), ω_R(t),
-        ν_TN(t)      
+        dα_R(t),        
+        # need to be specified by coupled system:
+        i_L(t)
     end)
 
     eqs = [
@@ -154,7 +155,7 @@ function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=ses
     end)
     ps = @parameters δ=δ
     eqs_rev, sts_rev = use_seam_revenue ? 
-        get_revenue_eq_seam(sN) : get_revenue_eq_sesam3CN(sN)
+        get_dα_eq_seam(sN) : get_dα_eq_sesam3CN(sN)
     @variables α_LT(t) α_RT(t)
     lim_E = SA[lim_C, lim_N]
     β_B = SA[1.0, β_NB]
@@ -172,7 +173,7 @@ function sesam3CN_revMM(;name, δ=40.0, max_w=12, use_seam_revenue=false, sN=ses
         # w_C ~ exp(δ/tvr_B*(C_synBmC - C_synBC)),
         # w_N ~ exp(δ/tvr_B*(C_synBmN - C_synBN)),
         lim_C ~ w_C/(w_C + w_N), lim_N ~ w_N/(w_C + w_N), # normalized for plot
-        # α_LT, α_RT by get_revenue_eq_X
+        # α_LT, α_RT by get_dα_eq_X
         ω_Enz ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NEnz], β_B),
         ω_L ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NL], β_B, ν_TZ),
         ω_R ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NR], β_B, ν_TZ),
@@ -185,7 +186,7 @@ end
 sesam3_revMM(args...;kwargs...) = sesam3CN_revMM(args...;kwargs...)
 
 
-function get_revenue_eq_seam(sN)
+function get_dα_eq_seam(sN)
     # needs dec_RPot, which is specific to revMM decomposition formulation
     @parameters t 
     @unpack dec_LPot, dec_RPot, k_mN_L, k_mN_R, syn_Enz, α_L, α_R, β_NL, β_NR = sN

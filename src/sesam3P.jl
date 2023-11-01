@@ -85,7 +85,7 @@ function sesam3P(;name, δ=40.0, max_w=12, sN = sesam3N(;name=:sN, δ, max_w))
     extend(ODESystem(eqs, t, sts, ps; name), sN)
 end
 
-function get_revenue_eq_sesam3CNP(sP)
+function get_dα_eq_sesam3CNP(sP)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, ϵ = sP
     @unpack β_PL, β_PR, β_PB, β_PEnz = sP
@@ -99,16 +99,14 @@ function get_revenue_eq_sesam3CNP(sP)
         return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         return_P(t),  revenue_P(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
-        revenue_sum(t), w_Enz(t),
+        revenue_sum(t), 
         τsyn(t), dα_R(t), dα_P(t)
     end)
     lim_E = SA[lim_C, lim_N, lim_P]
     β_B = SA[1.0, β_NB, β_PB]
     ν_TZ = SA[ϵ, ν_TN, ν_TP] 
     eqs = [
-        # syn_Enz_w ~ syn_Enz*(w_C + w_N/β_NEnz + w_P/β_PEnz),
-        w_Enz ~ ω_Enz,
-        syn_Enz_w ~ syn_Enz * w_Enz,
+        syn_Enz_w ~ syn_Enz * ω_Enz,
         # return_L ~ dec_L * (w_C*ϵ + w_N/β_NL*ν_TN + w_P/β_PL*ν_TP), 
         # return_R ~ dec_R * (w_C*ϵ + w_N/β_NR*ν_TN + w_P/β_PR*ν_TP), 
         # return_L ~ dec_L * (w_C + w_N/β_NL + w_P/β_PL), 
@@ -140,30 +138,24 @@ function get_revenue_eq_sesam3CNP(sP)
     (;eqs, sts)
 end
 
-function get_revenue_eq_sesam3CNP_deriv(sP)
+function get_dα_eq_sesam3CNP_deriv(sP)
     @parameters t 
     @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, ϵ = sP
     @unpack β_PL, β_PR, β_PB, β_PEnz = sP
     @unpack lim_C, lim_N, lim_P, ω_Enz, ω_L, ω_R, ω_P = sP
     @unpack α_P, dec_PPot, k_mN_L, k_mN_R, k_mN_P, s_EP, syn_B, B, τ = sP
-    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P = sP
+    @unpack u_immPPot, u_PlantP, u_immNPot, u_PlantN, ν_N, ν_P, ν_TP(t), ν_TN = sP
+    @unpack dα_R, dα_P = sP
     sts = @variables (begin
         syn_Enz_w(t), 
-        p_uPmic(t), p_uNmic(t), ν_TP(t), ν_TN(t), 
         d_L(t), d_R(t), d_P(t),
         du_L(t), du_R(t), du_P(t),
-        mdu(t), dα_R(t), dα_P(t),
+        mdu(t), 
         τsyn(t)
         #dα_L(t),
     end)
     eqs = [
-        syn_Enz_w ~ syn_Enz*(lim_C + lim_N/β_NEnz + lim_P/β_PEnz),
-        # return of enzymes produced in addition to that of plants
-        # d_L ~ dec_LPot * (lim_C*ϵ + lim_N/β_NL*ν_TN + lim_P/β_PL*ν_TP), 
-        # d_R ~ dec_RPot * (lim_C*ϵ + lim_N/β_NR*ν_TN + lim_P/β_PR*ν_TP), 
-        # d_P ~ dec_PPot * p_uPmic * lim_P, 
-        # d_L ~ dec_LPot * (lim_C + lim_N/β_NL + lim_P/β_PL), 
-        # d_R ~ dec_RPot * (lim_C + lim_N/β_NR + lim_P/β_PR), 
+        syn_Enz_w ~ syn_Enz * ω_Enz,
         d_L ~ dec_LPot * ω_L, 
         d_R ~ dec_RPot * ω_R, 
         d_P ~ dec_PPot * ω_P, 
@@ -221,7 +213,7 @@ function sesam3CNP(;
     @unpack sum_w = sP
     ps = @parameters δ=δ max_w=max_w
     eqs_rev, sts_rev = use_proportional_revenue ? 
-        get_revenue_eq_sesam3CNP(sP) : get_revenue_eq_sesam3CNP_deriv(sP)
+        get_dα_eq_sesam3CNP(sP) : get_dα_eq_sesam3CNP_deriv(sP)
     lim_E = SA[lim_C, lim_N, lim_P]
     β_B = SA[1.0, β_NB, β_PB]
     ν_TZ = SA[ϵ, ν_TN, ν_TP] 

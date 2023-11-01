@@ -123,7 +123,7 @@ function sesam3N(;name, δ=40.0, max_w=12, sC = sesam3C(;name=:sC, δ, max_w))
     extend(ODESystem(eqs, t, sts, ps; name), sC)
 end
 
-function get_revenue_eq_sesam3CN(sN)
+function get_dα_eq_sesam3CN(sN)
     @parameters t 
     @unpack α_L, α_R, dec_L, dec_R, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, τ, syn_B, B, ϵ = sN
     @unpack u_immNPot, u_PlantN, ν_N, ν_TN = sN
@@ -132,10 +132,10 @@ function get_revenue_eq_sesam3CN(sN)
         α_LT(t), α_RT(t),
         invest_L(t), invest_R(t), return_L(t), return_R(t), revenue_L(t), revenue_R(t),
         #invest_Ln(t), invest_Rn(t), return_Ln(t), return_Rn(t), 
-        revenue_sum(t), ω_Enz(t), ω_L(t), ω_R(t)
+        revenue_sum(t)
     end)
-    # need to be defined in coupled component:
-    @variables w_C(t), w_N(t), dα_R(t)
+    # defined for system
+    @unpack dα_R = sN
     eqs = [
         invest_L ~ α_L*syn_Enz * ω_Enz,   
         invest_R ~ α_R*syn_Enz * ω_Enz,
@@ -156,7 +156,7 @@ function get_revenue_eq_sesam3CN(sN)
     (;eqs, sts)
 end
 
-function get_revenue_eq_sesam3CN_deriv(sN)
+function get_dα_eq_sesam3CN_deriv(sN)
     @parameters t 
     @unpack α_L, α_R, dec_LPot, dec_RPot, β_NL, β_NR, β_NB, β_NEnz, syn_Enz, ϵ = sN
     @unpack ω_Enz, ω_L, ω_R = sN
@@ -165,8 +165,9 @@ function get_revenue_eq_sesam3CN_deriv(sN)
     sts = @variables (begin
         d_L(t), d_R(t),
         du_L(t), du_R(t), 
-        mdu(t), dα_R(t)
+        mdu(t)
     end)
+    @unpack dα_R = sN
     eqs = [
         d_L ~ dec_LPot * ω_L, 
         d_R ~ dec_RPot * ω_R, 
@@ -225,8 +226,8 @@ function sesam3CN(;name, δ=40.0, max_w=12,
     @unpack sum_w, w_C, w_N, C_synBN, dα_R = sN
     ps = @parameters δ=δ
     eqs_rev, sts_rev = use_seam_revenue ? 
-        get_revenue_eq_seam(sN) : use_proportional_revenue ?
-        get_revenue_eq_sesam3CN(sN) : get_revenue_eq_sesam3CN_deriv(sN)
+        get_dα_eq_seam(sN) : use_proportional_revenue ?
+        get_dα_eq_sesam3CN(sN) : get_dα_eq_sesam3CN_deriv(sN)
     @variables α_LT(t) α_RT(t)
     # two elements in weighting Enz, L and R carbon fluxes
     lim_E = SA[lim_C, lim_N]
@@ -239,7 +240,7 @@ function sesam3CN(;name, δ=40.0, max_w=12,
         ω_Enz ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NEnz], β_B),
         ω_L ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NL], β_B, ν_TZ),
         ω_R ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NR], β_B, ν_TZ),
-        # α_LT, α_RT, dα_R by get_revenue_eq_X
+        # α_LT, α_RT, dα_R by get_dα_eq_X
         #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         α_L ~ 1 - α_R,
         ]
