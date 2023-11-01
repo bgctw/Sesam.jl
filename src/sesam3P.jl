@@ -1,4 +1,4 @@
-function sesam3P(;name, sN = sesam3N(name=:sN))
+function sesam3P(;name, δ=40.0, max_w=12, sN = sesam3N(;name=:sN, δ, max_w))
     @parameters t 
     D = Differential(t)
 
@@ -8,7 +8,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         i_LP(t), tvr_P(t), tvr_Enz_P(t),
         Φ_P(t), Φ_Pu(t), Φ_PB(t), Φ_Ptvr(t),
         u_PlantP(t), u_POM(t), u_immPPot(t), 
-        u_PPot(t), P_synBP(t), M_ImbP(t), 
+        u_PPot(t), P_synBP(t), C_synBP(t), M_ImbP(t), 
         β_PL(t), β_PR(t),
         leach_P(t),
         resorp_P(t), β_PBtvr(t),
@@ -21,7 +21,8 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         u_PlantPmax(t), k_PlantP(t),
         s_EP(t), pL_sEP(t), # synthesis of E_LP adn E_RP enzymes by plants
         SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t),
-        lim_P(t), ω_P(t), ν_TP(t)
+        lim_P(t), ω_P(t), ν_TP(t),
+        dα_P(t), w_P(t)
     end)
     ps = @parameters(
         β_PEnz, β_PB, l_P,  ν_P, i_BN, i_BP, k_LP, k_RP, k_mN_P, β_Pm, ρ_PBtvr=0.0) 
@@ -30,12 +31,14 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
     @unpack syn_Enz, tvr_Enz, r_tvr, κ_E = sN
     @unpack β_NB, β_Ni, L_N, R_N = sN
     @unpack k_mN_L, k_mN_R = sN
+    @unpack sum_w = sN
 
     eqs = [
         β_PL ~ L/L_P, β_PR ~ R/R_P,
         D(L_P) ~ dL_P, dL_P ~ -dec_L/β_PL - dec_LP_P + i_LP,
         D(R_P) ~ dR_P, dR_P ~ -dec_R/β_PR - dec_RP_P + tvr_P + tvr_Enz_P,
         D(I_P) ~ dI_P,
+        D(α_P) ~ dα_P, 
         i_LP ~ i_L/β_Pi, tvr_P ~ ϵ_tvr*tvr_B/β_PBtvr, tvr_Enz_P ~ (1-κ_E)*tvr_Enz/β_PEnz,
         # potential rate of biomineralization decreases with  increasing C:P ratio β_PS
         lim_LP ~ 1/(1 + β_PL/β_Pm), 
@@ -60,6 +63,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         u_POM ~ dec_L/β_PL + dec_R/β_PR + κ_E*tvr_Enz/β_PEnz,
         u_immPPot ~ i_BP * I_P,
         P_synBP ~ u_PPot - syn_Enz/β_PEnz,
+        C_synBP ~ β_PB*P_synBP,
         M_ImbP ~ u_PPot - (syn_B/β_PB + syn_Enz/β_PEnz),
         Φ_PB ~ M_ImbP - u_immPPot,
         # make sure ρ_PBtvr >= 0
@@ -68,6 +72,7 @@ function sesam3P(;name, sN = sesam3N(name=:sN))
         # loss by indirect pathway
         ν_TP ~ ν_P+(1-ν_P)*p_uPmic,
         p_uPmic ~ u_immPPot/(u_immPPot + u_PlantP),
+        w_P ~ exp(min(max_w, -δ/tvr_B*(C_synBP - syn_B))), lim_P ~ w_P/sum_w,
         # observables for diagnostic output
         SOP ~ L_P + R_P + B/β_PB,
         β_PSOM ~ SOC/SOP,
@@ -202,7 +207,8 @@ function compute_mean_du3(du1, α1, du2, α2, du3, α3; sum_α_others=0)
     mdu
 end
 
-function sesam3CNP(;name, δ=40.0, max_w=12, use_proportional_revenue=false, sP=sesam3P(name=:sP))
+function sesam3CNP(;
+    name, δ=40.0, max_w=12, use_proportional_revenue=false, sP=sesam3P(;name=:sP, δ, max_w))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, β_NB, N_synBN, tvr_B = sP
@@ -210,60 +216,25 @@ function sesam3CNP(;name, δ=40.0, max_w=12, use_proportional_revenue=false, sP=
     @unpack ϵ, ν_TN, ν_TP = sP
     @unpack β_PB, P_synBP, α_P = sP
     @unpack β_NL, β_NR, β_NEnz, β_PL, β_PR, β_PEnz = sP
-    sts = @variables (begin
-        C_synBmC(t), 
-        C_synBN(t), C_synBmN(t),
-        C_synBP(t), C_synBmP(t),
-        #dα_L(t), 
-        dα_R(t),
-        dα_P(t),
-        w_C(t), w_N(t), lim_C(t), lim_N(t),
-        sum_w(t),
-        w_P(t)
-    end)
+    @unpack C_synBN, C_synBP, dα_P, w_P = sP
+    @unpack w_C, w_N, w_P = sP
+    @unpack sum_w = sP
     ps = @parameters δ=δ max_w=max_w
     eqs_rev, sts_rev = use_proportional_revenue ? 
         get_revenue_eq_sesam3CNP(sP) : get_revenue_eq_sesam3CNP_deriv(sP)
-    @variables α_LT(t) α_RT(t)
-    @variables α_PT(t) 
     lim_E = SA[lim_C, lim_N, lim_P]
     β_B = SA[1.0, β_NB, β_PB]
     ν_TZ = SA[ϵ, ν_TN, ν_TP] 
     eqs = [
-        C_synBN ~ β_NB*N_synBN,
-        C_synBP ~ β_PB*P_synBP,
         syn_B ~ min(C_synBC, C_synBN, C_synBP), 
-        # C_synBmC ~ min(C_synBN, C_synBP), 
-        # C_synBmN ~ min(C_synBC, C_synBP), 
-        # C_synBmP ~ min(C_synBC, C_synBN), 
-        # need minimum, otherwise danger of Inf and NaN -> instability
-        # w_C ~ min(max_w, exp(δ/tvr_B*(C_synBmC - C_synBC))),
-        # w_N ~ min(max_w, exp(δ/tvr_B*(C_synBmN - C_synBN))),
-        # w_P ~ min(max_w, exp(δ/tvr_B*(C_synBmP - C_synBP))),
-        # need minimum inisde exp, otherwise computation of Duals may cause instability
-        # w_C ~ exp(min(max_w, δ/tvr_B*(C_synBmC - C_synBC))),
-        # w_N ~ exp(min(max_w, δ/tvr_B*(C_synBmN - C_synBN))),
-        # w_P ~ exp(min(max_w, δ/tvr_B*(C_synBmP - C_synBP))),
-        # with new formulation available flux cannot be too much smaller than syn_B
-        # w_C ~ exp(-δ/tvr_B*(C_synBC - syn_B)),
-        # w_N ~ exp(-δ/tvr_B*(C_synBN - syn_B)),
-        # w_P ~ exp(-δ/tvr_B*(C_synBP - syn_B)),
-        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
-        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
-        w_P ~ exp(min(max_w, -δ/tvr_B*(C_synBP - syn_B))),
         sum_w ~ w_C + w_N + w_P,
-        lim_C ~ w_C/sum_w, lim_N ~ w_N/sum_w, lim_P ~ w_P/sum_w,# normalized 
         ω_Enz ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NEnz, β_PEnz], β_B),
         ω_L ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NL, β_PL], β_B, ν_TZ),
         ω_R ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NR, β_PR], β_B, ν_TZ),
         ω_P ~ compute_elemental_weightfactor(SA[lim_P], SA[1.0], SA[β_PB], SA[ν_TP]),
-        # α_LT, α_RT by get_revenue_eq_X
-        #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         α_L ~ 1 - (α_R + α_P),
-        D(α_R) ~ dα_R, 
-        D(α_P) ~ dα_P, 
         ]
-    extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sP)
+    extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts_rev), ps; name), sP)
 end
 
 sesam3(args...;kwargs...) = sesam3CNP(args...;kwargs...)

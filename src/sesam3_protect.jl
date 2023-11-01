@@ -1,4 +1,4 @@
-function sesam3C_protect(;name, k_N=60.0)
+function sesam3C_protect(;name, k_N=60.0, δ=40.0, max_w=12)
     # extends sesam3C by assuming only a portion of residues accessible to enzymatic
     # degradation. That portion is in Langmuir-equilibrium with a protected pool
     @parameters t 
@@ -21,20 +21,23 @@ function sesam3C_protect(;name, k_N=60.0)
         C_synBCt(t), C_synBC(t), r_G(t),
         r_tvr(t), 
         r_B(t), r_GEnz(t), r_O(t),
+        w_C(t), lim_C(t),
         # new variables
         k_Rtot(t),
         # need to be defined by component across all elements
-        α_L(t), α_R(t),
-        # need to be specified by coupled system:
-        i_L(t), syn_B(t),
+        α_L(t), α_R(t), 
+        syn_B(t), sum_w(t),
         ω_Enz(t), ω_L(t), ω_R(t),
-        ν_TN(t)
+        dα_R(t),
+        # need to be specified by coupled system:
+        i_L(t)
     end)
 
     eqs = [
         D(B) ~ dB, dB ~ syn_B - tvr_B,
         D(L) ~ dL, dL ~ -dec_L + i_L,
         D(R) ~ dR, dR ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*syn_Enz,
+        D(α_R) ~ dα_R, 
         syn_Enz ~ a_E*B, tvr_Enz ~ syn_Enz,
         r_M ~ m*B,
         tvr_B ~ τ*B,
@@ -62,6 +65,7 @@ function sesam3C_protect(;name, k_N=60.0)
         r_tot ~ r_B + r_tvr,
         E_L ~ (α_L * syn_Enz)/k_N,
         E_R ~ (α_R * syn_Enz)/k_N,
+        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))), lim_C ~ w_C/sum_w, 
         ]
     ODESystem(eqs, t, sts, ps; name)    
 end
@@ -76,9 +80,9 @@ function compute_accessible_langmuir(R, Q_max, K_eqR)
 end
 @register_symbolic compute_accessible_langmuir(t, Q_max, K_eqR)
 
-sesam3_protect(args...;kwargs...) = sesam3CN(
+sesam3_protect(args...; δ=40.0, max_w=12, kwargs...) = sesam3CN(
     args...; 
-    sN = sesam3N(name=:sN, sC = sesam3C_protect(name=:sC)),
+    sN = sesam3N(name=:sN, sC = sesam3C_protect(;name=:sC, δ, max_w)),
     kwargs...
 )
 

@@ -1,4 +1,4 @@
-function sesam3C(;name, k_N=60.0)
+function sesam3C(;name, k_N=60.0, δ=40.0, max_w=12)
     @parameters t 
     D = Differential(t)
 
@@ -19,17 +19,21 @@ function sesam3C(;name, k_N=60.0)
         r_tvr(t), 
         r_B(t), r_GEnz(t), r_O(t),
         tvr_B0(t), resorp_C(t), 
-        # need to be defined by component across all elements
+        w_C(t), lim_C(t),
         α_L(t), α_R(t), 
+        # equations need to be defined by component across all elements
+        syn_B(t), sum_w(t),
+        ω_Enz(t), ω_L(t), ω_R(t),
+        dα_R(t),
         # need to be specified by coupled system:
-        i_L(t), syn_B(t),
-        ω_Enz(t), ω_L(t), ω_R(t)
+        i_L(t)
     end)
 
     eqs = [
         D(B) ~ dB, dB ~ syn_B - tvr_B,
         D(L) ~ dL, dL ~ -dec_L + i_L,
         D(R) ~ dR, dR ~ -dec_R + ϵ_tvr*tvr_B + (1-κ_E)*tvr_Enz,
+        D(α_R) ~ dα_R, 
         syn_Enz ~ a_E*B, tvr_Enz ~ syn_Enz,
         r_M ~ m*B,
         # element resorption changes stoichiometry: β_EB -> β_EBtvr
@@ -55,11 +59,12 @@ function sesam3C(;name, k_N=60.0)
         r_tot ~ r_B + r_tvr,
         E_L ~ (α_L * syn_Enz)/k_N,
         E_R ~ (α_R * syn_Enz)/k_N,
+        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))), lim_C ~ w_C/sum_w, 
         ]
     ODESystem(eqs, t, sts, ps; name)    
 end
 
-function sesam3N(;name, sC = sesam3C(name=:sC))
+function sesam3N(;name, δ=40.0, max_w=12, sC = sesam3C(;name=:sC, δ, max_w))
     @parameters t 
     D = Differential(t)
 
@@ -68,7 +73,7 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         dL_N(t),  dR_N(t),  dI_N(t),
         Φ_N(t), Φ_Nu(t), Φ_NB(t), Φ_Ntvr(t),
         u_PlantN(t), u_NOM(t), u_immNPot(t), 
-        u_NPot(t), N_synBN(t), M_ImbN(t), 
+        u_NPot(t), N_synBN(t), C_synBN(t), M_ImbN(t), 
         β_NL(t), β_NR(t),
         leach_N(t),
         resorp_N(t), β_NBtvr(t),
@@ -76,11 +81,13 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         # need to be specified by coupled system:
         β_Ni(t), i_IN(t),
         u_PlantNmax(t), k_PlantN(t),
-        SOC(t), SON(t), β_NSOM(t), BtoSOC(t), lim_C(t), lim_N(t)
+        SOC(t), SON(t), β_NSOM(t), BtoSOC(t), 
+        w_N(t), lim_N(t)
     end)
     ps = @parameters β_NEnz β_NB l_N  ν_N i_BN ρ_NBtvr=0.0
 
-    @unpack L, R, B, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, tvr_B0, syn_B, syn_Enz, tvr_Enz, r_tvr, κ_E = sC
+    @unpack L, R, B, dec_L, dec_R, i_L, ϵ_tvr, tvr_B, tvr_B0, syn_B, syn_Enz, tvr_Enz = sC 
+    @unpack r_tvr, κ_E, sum_w = sC
 
     eqs = [
         β_NL ~ L/L_N, β_NR ~ R/R_N,
@@ -97,6 +104,7 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         u_NOM ~ dec_L/β_NL + dec_R/β_NR + κ_E*tvr_Enz/β_NEnz,
         u_immNPot ~ i_BN * I_N,
         N_synBN ~ u_NPot - syn_Enz/β_NEnz,
+        C_synBN ~ β_NB*N_synBN,
         M_ImbN ~ u_NPot - (syn_B/β_NB + syn_Enz/β_NEnz),
         Φ_NB ~ M_ImbN - u_immNPot,
         # make sure ρ_NBtvr >= 0
@@ -104,6 +112,8 @@ function sesam3N(;name, sC = sesam3C(name=:sC))
         β_NBtvr ~ tvr_B / (tvr_B0/β_NB - resorp_N),
         p_uNmic ~ u_immNPot/(u_immNPot + u_PlantN),
         ν_TN ~ ν_N+(1-ν_N)*p_uNmic,        
+        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
+        lim_N ~ w_N/sum_w, 
         # observables for diagnostic output
         SOC ~ L + R + B,
         SON ~ L_N + R_N + B/β_NB,
@@ -205,19 +215,14 @@ function compute_elemental_weightfactor(lim_E, betaZ, β_B,
 end
 
 function sesam3CN(;name, δ=40.0, max_w=12, 
-    use_seam_revenue=false, use_proportional_revenue=false, sN=sesam3N(name=:sN))
+    use_seam_revenue=false, use_proportional_revenue=false, sN=sesam3N(;name=:sN, δ, max_w))
     @parameters t 
     D = Differential(t)
     @unpack α_L, α_R, syn_B, B, C_synBC, N_synBN, tvr_B, τ, ϵ = sN
     @unpack β_NB, β_NEnz, β_NL, β_NR = sN
     @unpack lim_C, lim_N, ω_Enz, ω_L, ω_R = sN
     @unpack u_immNPot, u_PlantN, ν_TN = sN    
-    sts = @variables (begin
-        C_synBN(t), 
-        #dα_L(t), 
-        dα_R(t),
-        w_C(t), w_N(t)
-    end)
+    @unpack sum_w, w_C, w_N, C_synBN, dα_R = sN
     ps = @parameters δ=δ
     eqs_rev, sts_rev = use_seam_revenue ? 
         get_revenue_eq_seam(sN) : use_proportional_revenue ?
@@ -228,22 +233,17 @@ function sesam3CN(;name, δ=40.0, max_w=12,
     β_B = SA[1.0, β_NB]
     ν_TZ = SA[ϵ, ν_TN] 
     eqs = [
-        C_synBN ~ β_NB*N_synBN,
         syn_B ~ min(C_synBC, C_synBN), 
         # need minimum, otherwise danger of Inf and nan -> instability
-        w_C ~ exp(min(max_w, -δ/tvr_B*(C_synBC - syn_B))),
-        w_N ~ exp(min(max_w, -δ/tvr_B*(C_synBN - syn_B))),
-        lim_C ~ w_C/(w_C + w_N), 
-        lim_N ~ w_N/(w_C + w_N), # normalized for plot
+        sum_w ~ w_C + w_N,
         ω_Enz ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NEnz], β_B),
         ω_L ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NL], β_B, ν_TZ),
         ω_R ~ compute_elemental_weightfactor(lim_E, SA[1.0, β_NR], β_B, ν_TZ),
         # α_LT, α_RT, dα_R by get_revenue_eq_X
         #D(α_L) ~ dα_L, dα_L ~ (α_LT - α_L)*(τ + abs(syn_B)/B),
         α_L ~ 1 - α_R,
-        D(α_R) ~ dα_R, 
         ]
-    extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts, sts_rev), ps; name), sN)
+    extend(ODESystem(vcat(eqs,eqs_rev), t, vcat(sts_rev), ps; name), sN)
 end
 
 # sesam3 now refers to sesam3CNP

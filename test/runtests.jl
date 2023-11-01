@@ -8,11 +8,12 @@ using ComponentArrays
 
 
 @testset "sesam3_protect" begin
+    #include("test/test_sesam3_protect.jl");        
     include("test_sesam3_protect.jl")        
 end;
 
 @testset "sesam3" begin
-    #include("test/test_sesam3.jl")        
+    #include("test/test_sesam3.jl");        
     include("test_sesam3.jl")        
 end;
 
@@ -28,11 +29,12 @@ end;
 end;
 
 @testset "sesam3_CN" begin
-    #include("test/test_sesam3CN.jl")        
+    #include("test/test_sesam3CN.jl");        
     include("test_sesam3CN.jl")        
 end;
 
 @testset "seam3" begin
+    #include("test/test_seam3.jl");        
     include("test_seam3.jl")        
 end;
 
