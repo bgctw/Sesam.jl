@@ -111,11 +111,15 @@ end
 
 i_inspect_dlit = () -> begin
     autumn_start=8.5/12; autumn_end=11.5/12
-    d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, 
+    # d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, 
+    #     #     LogitNormal(0,sqrt(2)), 
+    #     fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+    #     #    Uniform()
+    # )
+    d_lit_agr = autumn_start + (autumn_end - autumn_start) * 
         #     LogitNormal(0,sqrt(2)), 
         fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
         #    Uniform()
-    )
     xs = 0.6:0.005:1
     Plots.plot(xs .* 12 .+ 1, pdf.(d_lit_agr, xs))
 end
