@@ -73,14 +73,14 @@ get_litter_input_fake_system = () -> begin
     @named plse = embed_system(pl)
     prob_pl = ODEProblem(plse, [pl.Lagr => p[pl.i_L0]/2 / p[pl.k_Lagr]], (-500,200), p)
     sol_pl = solve(prob_pl, Vern7(), reltol=1e-5) # litterfall with high accuracy
-    plf = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl, t1, t2);
+    plf = plant_face_fluct_fake(;name=nameof(pl),sys=pl, sol=sol_pl, t1, t2);
     #Plots.plot(sol_pl, tspan=(-1.5,-1), vars=[pl.i_L, pl.i_L_annual, pl.i_Lagr])
     #
     # repeat with annually averaged litter input - here without fake
     # ps_plse = ProblemParSetter(plse, (pl.share_autumn, pl.Lagr))
     # prob_pl_ann = update_statepar(ps_plse, (0.0, 0.0), prob_pl);
     # sol_pl_ann = solve(prob_pl_ann, Vern7())
-    # plf_ann = plant_face_fluct_fake(;name=pl.name,sys=pl, sol=sol_pl_ann);
+    # plf_ann = plant_face_fluct_fake(;name=nameof(pl),sys=pl, sol=sol_pl_ann);
 
     pl_ann = plf_ann = plant_face(;name=:pl, t1, t2)
     plf, plf_ann, sol_pl     
