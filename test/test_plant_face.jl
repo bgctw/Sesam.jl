@@ -27,7 +27,8 @@ p_plf = Dict(
 )
 tspan = (0, 120)
 prob = ODEProblem(plf_rep, [0.0], tspan, p_plf)
-sol = solve(prob, saveat = 0:1:tspan[2])
+#sol = solve(prob, saveat = 0:1:tspan[2])
+sol = solve(prob, saveat = 0:1:tspan[2], verbose=false) # suppress warnings
 
 @testset "increased input" begin
     is_face_period = 20 .<= sol.t .< 20+50

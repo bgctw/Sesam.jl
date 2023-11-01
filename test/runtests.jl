@@ -39,6 +39,7 @@ end;
 end;
 
 @testset "plant_face" begin
+    #include("test/test_plant_face.jl");        
     include("test_plant_face.jl")        
 end;
 
