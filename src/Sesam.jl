@@ -7,7 +7,7 @@ using Distributions
 using MTKHelpers
 using StaticArrays
 using FillArrays
-using Infiltrator
+#using Infiltrator
 
 export plant_const, plant_const_balanced, 
     plant_face, plant_face_fluct, plant_face_fluct_fake,
