@@ -6,24 +6,23 @@ using InteractiveUtils
 
 # ╔═╡ 884883c1-c2bf-4209-b783-2e57428e4389
 if occursin("Sesam", Base.current_project())
-	import Pkg
-	# activate the shared project environment
-	Pkg.project().path != Base.current_project() && 
-		Pkg.activate(Base.current_project())
-	Pkg.develop("MTKHelpers")
-	# instantiate, i.e. make sure that all packages are downloaded
-	Pkg.instantiate()
-	using PlutoLinks: @revise
-	using Sesam, MTKHelpers
-	#@revise using Sesam
-	#@revise using MTKHelpers
+    import Pkg
+    # activate the shared project environment
+    Pkg.project().path != Base.current_project() &&
+        Pkg.activate(Base.current_project())
+    Pkg.develop("MTKHelpers")
+    # instantiate, i.e. make sure that all packages are downloaded
+    Pkg.instantiate()
+    using PlutoLinks: @revise
+    using Sesam, MTKHelpers
+    #@revise using Sesam
+    #@revise using MTKHelpers
 else
-	using Sesam, MTKHelpers
+    using Sesam, MTKHelpers
 end
 
 # ╔═╡ 27f3db92-b75d-11ec-00ad-3bcc21f6f62d
 Base.current_project()
-
 
 # ╔═╡ cb96aaa0-dd01-42c0-816b-cd3a32c9966c
 pwd()
