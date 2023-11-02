@@ -5,22 +5,21 @@ D = Differential(t)
 @named plf = plant_face_fluct()
 #structural_simplify(plf) 
 
-function rep_plf(pl;name, simplify=true)
+function rep_plf(pl; name, simplify = true)
     @parameters t
     D = Differential(t)
         sts = @variables x(t)
     # integrate of i_L to check annual litter inputs
     tmp = compose(ODESystem([
-        D(x) ~ pl.i_L
-        ],t,sts,[];name), pl)
+                D(x) ~ pl.i_L,
+            ], t, sts, []; name), pl)
     simplify ? structural_simplify(tmp) : tmp
  end
  @named plf_rep = rep_plf(plf)
 # @named plf_rep = embed_system(plf)
  equations(plf_rep)
  
-p_plf = Dict(
-    plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
+p_plf = Dict(plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     plf.β_Ni0 => 25,
     plf.i_IN0 => 0,   ##<< input of mineral N,
     plf.t1 => 0.0,
@@ -29,14 +28,11 @@ p_plf = Dict(
     plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     plf.β_Ni0 => 25,
     plf.i_IN0 => 0,   ##<< input of mineral N, 
-    plf.β_Pi0 => 25*20, ## leaf litter N:P ~20(massratio Kang10)
+    plf.β_Pi0 => 25 * 20, ## leaf litter N:P ~20(massratio Kang10)
     plf.i_IP0 => 0.65,   ##<< input of mineral P, weathering: Table3 mixed sedimentary rocks 0.65g/m2/yr Hartmann14 10.1016/j.chemgeo.2013.10.025
-    plf.s_EP0 => 0.5, # plant 1/20 of typical total microbial enzyme synthesis flux
-)
-u_plf = Dict(
-    plf.Lagr => 0.2,
-    x => 0.0,
-)
+    plf.s_EP0 => 0.5)
+u_plf = Dict(plf.Lagr => 0.2,
+    x => 0.0)
 #tspan = (-500.0, 120.0)
 tspan = (-5.0, 5.0)
 prob = ODEProblem(plf_rep, u_plf, tspan, p_plf)
@@ -49,7 +45,7 @@ solver = Vern7() # implicit method
 
 # solver = Tsit5() # takes forever and produces wrong solution
 sol = solve(prob, solver,
-    reltol = 1e-5,  # simulate litterfall with higher accuracy
+    reltol = 1e-5  # simulate litterfall with higher accuracy
     #progress = true, progress_steps = 1,
     #saveat = 0.005 # uncomment for proper plotting
 );
@@ -62,38 +58,40 @@ sol = solve(prob, solver,
 i_plot = () -> begin
     # using Plots
     ts = tspan
-    Plots.plot(sol, tspan=ts, vars=[plf.i_L, plf.i_L_annual], xlab="time (yr)", ylab="litter input (g/m2/yr)")
-    Plots.plot(sol, tspan=ts, vars=[plf.β_Ni], xlab="time (yr)", ylab="CN litter input (g/g)")
-    Plots.plot(sol, tspan=ts, vars=[plf.inc_period], xlab="time (yr)", ylab="inc_period")
-    series_sol(sol, )
+    Plots.plot(sol, tspan = ts, vars = [plf.i_L, plf.i_L_annual], xlab = "time (yr)",
+        ylab = "litter input (g/m2/yr)")
+    Plots.plot(sol, tspan = ts, vars = [plf.β_Ni], xlab = "time (yr)",
+        ylab = "CN litter input (g/g)")
+    Plots.plot(sol, tspan = ts, vars = [plf.inc_period], xlab = "time (yr)",
+        ylab = "inc_period")
+    series_sol(sol)
 
-    ts = (-2,5)
-    ts = (-0.1,+0.1)
-    ts = (0.7,1)
-    ts = (-0.3,0)
-    ts = (0,10) .+ tspan[1]
+    ts = (-2, 5)
+    ts = (-0.1, +0.1)
+    ts = (0.7, 1)
+    ts = (-0.3, 0)
+    ts = (0, 10) .+ tspan[1]
     ts = tspan
-    Plots.plot(sol, tspan=ts, vars=[plf.i_Lagr, plf.dec_Lagr, plf.d_Lagr])
+    Plots.plot(sol, tspan = ts, vars = [plf.i_Lagr, plf.dec_Lagr, plf.d_Lagr])
 
-    x = (9.5/12:1/(12*10):11.5/12) .+ 1
+    x = ((9.5 / 12):(1 / (12 * 10)):(11.5 / 12)) .+ 1
     Plots.scatter(x, first.(sol.(x)))
-    plot(sol, tspan=extrema(x), vars=[plf.i_Lagr, plf.dec_Lagr])
+    plot(sol, tspan = extrema(x), vars = [plf.i_Lagr, plf.dec_Lagr])
 
-    plot(sol, vars=[plf.i_L / plf.β_Ni])
+    plot(sol, vars = [plf.i_L / plf.β_Ni])
 end
 
 @testset "integration of litterfall over one year" begin
-    isapprox(sol(0, idxs=x) - sol(-1, idxs=x), 400, atol=0.05)
-    isapprox(sol(5, idxs=x) - sol(4, idxs=x), 480, atol=0.05)
+    isapprox(sol(0, idxs = x) - sol(-1, idxs = x), 400, atol = 0.05)
+    isapprox(sol(5, idxs = x) - sol(4, idxs = x), 480, atol = 0.05)
 end;
 
 i_plot_integrated_annual = () -> begin
-    Plots.plot(sol, vars=[x])
-    ts = range(first(tspan)+1, last(tspan), length=200)
-    xann = sol.(ts, idxs=x) .- sol.(ts .- 1.0, idxs=x)
+    Plots.plot(sol, vars = [x])
+    ts = range(first(tspan) + 1, last(tspan), length = 200)
+    xann = sol.(ts, idxs = x) .- sol.(ts .- 1.0, idxs = x)
     Plots.plot(ts, xann)
 end
-
 
 # dlit = shifloNormal(10/12, 11/12)
 # #plot(dlit, xlim=(0,1))
@@ -110,13 +108,18 @@ end
 # @test isapprox(first(quadgk(f1, 0, 1, rtol=1e-3)), lann, rtol=1e-2)
 
 i_inspect_dlit = () -> begin
-    autumn_start=8.5/12; autumn_end=11.5/12
-    d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, 
+    autumn_start = 8.5 / 12
+    autumn_end = 11.5 / 12
+    # d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, 
+    #     #     LogitNormal(0,sqrt(2)), 
+    #     fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+    #     #    Uniform()
+    # )
+    d_lit_agr = autumn_start +
+                (autumn_end - autumn_start) *
         #     LogitNormal(0,sqrt(2)), 
         fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
         #    Uniform()
-    )
     xs = 0.6:0.005:1
     Plots.plot(xs .* 12 .+ 1, pdf.(d_lit_agr, xs))
 end
-

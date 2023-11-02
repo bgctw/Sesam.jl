@@ -7,7 +7,12 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                "AbstractPlutoDingetjes")].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -115,19 +120,19 @@ d_S &= v_{max} \frac{S \, \frac{\operatorname{syn}_{E_S}}{k_N} }{ k_{S E_S} + S 
 
 # ╔═╡ 711679f4-1c61-4560-9df6-4e30c27ca97a
 begin
-	function calc_k_m(syn_E, M, k_SE, k_SM, s_B)
-		k_SE*(1+M/k_SM) + syn_E/s_B
-	end
-	function calc_k_m(syn_E; M, k_SE, k_SM, s_B)
-		calc_k_m(syn_E, M, k_SE, k_SM, s_B)
-	end
-	function calc_d_S(S, syn_E, M, k_SE, k_SM, s_B, v_max, k_N)
-		k_m = calc_k_m(syn_E, M, k_N, k_SE, k_SM)
-		v_max * syn_E/k_N * S / (k_m + S)
-	end
-	function calc_d_S(S, syn_E; M, k_SE, k_SM, s_B, v_max, k_N)
-		calc_d_S(S, syn_E, M, k_SE, k_SM, s_B, v_max, k_N)
-	end
+    function calc_k_m(syn_E, M, k_SE, k_SM, s_B)
+        k_SE * (1 + M / k_SM) + syn_E / s_B
+    end
+    function calc_k_m(syn_E; M, k_SE, k_SM, s_B)
+        calc_k_m(syn_E, M, k_SE, k_SM, s_B)
+    end
+    function calc_d_S(S, syn_E, M, k_SE, k_SM, s_B, v_max, k_N)
+        k_m = calc_k_m(syn_E, M, k_N, k_SE, k_SM)
+        v_max * syn_E / k_N * S / (k_m + S)
+    end
+    function calc_d_S(S, syn_E; M, k_SE, k_SM, s_B, v_max, k_N)
+        calc_d_S(S, syn_E, M, k_SE, k_SM, s_B, v_max, k_N)
+    end
 end;
 
 # ╔═╡ a7ae0b7c-362d-4a0a-b699-78de977e3761
@@ -151,116 +156,143 @@ restore_defaults_button = @bind restore_defaults_event PlutoUI.Button("Restore d
 
 # ╔═╡ 78c6e7ce-de1a-466a-89f3-f7700d754594
 begin
-	get_defaults = () -> begin
-		d = Dict(
-			:S => 3000., 
-			:M => 4_000., 
-			:k_SE => 200., 
-			:k_SM => 25., 
-			#:E => 1., 
-			:syn_E => 0.2 * 0.02 * 3000., # microbial biomass 2% OM
-			:k_N => 60, # enzyme turnover: 60 times a year
-			:s_B => 0.1, # 20% 
-		)
-		k_M = d[:k_N] * d[:k_SE] * (1 + d[:M]/d[:k_SM]) + d[:syn_E]/d[:s_B]
-		d[:v_max] = 1/20*k_M 
-		d
-	end
-	defaults = get_defaults()
-	let
-		restore_defaults_event
-		#@info "event triggered " * string(rand())
-		defaults = get_defaults()
-	end
+    get_defaults = () -> begin
+        d = Dict(:S => 3000.0,
+            :M => 4_000.0,
+            :k_SE => 200.0,
+            :k_SM => 25.0,
+            #:E => 1., 
+            :syn_E => 0.2 * 0.02 * 3000.0, # microbial biomass 2% OM
+            :k_N => 60, # enzyme turnover: 60 times a year
+            :s_B => 0.1)
+        k_M = d[:k_N] * d[:k_SE] * (1 + d[:M] / d[:k_SM]) + d[:syn_E] / d[:s_B]
+        d[:v_max] = 1 / 20 * k_M
+        d
+    end
+    defaults = get_defaults()
+    let
+        restore_defaults_event
+        #@info "event triggered " * string(rand())
+        defaults = get_defaults()
+    end
 end;
 
 # ╔═╡ e56486ba-7d03-404f-9b9c-cacd86e40e50
 begin
-	drange(k; center=defaults[k], f1=0.1, f2=2, length=100) = range((center*f1),(center*f2);length)
-	S_input = @bind S PlutoUI.Slider(0:4000,default=defaults[:S], show_value=true)
-	M_input = @bind M PlutoUI.Slider(2000:10_000,default=defaults[:M], show_value=true)
-	k_SE_input = @bind k_SE PlutoUI.Slider(50:500,default=defaults[:k_SE],show_value=true)
-	k_SM_input = @bind k_SM PlutoUI.Slider(5:100,default=defaults[:k_SM],show_value=true)
-	syn_E_input = @bind syn_E PlutoUI.Slider(drange(:syn_E),default=defaults[:syn_E],show_value=true)
-	k_N_input = @bind k_N PlutoUI.Slider(drange(:k_N),default=defaults[:k_N],show_value=true)
-	s_B_input = @bind s_B PlutoUI.Slider(0.001:0.025:0.6,default=defaults[:s_B],show_value=true)
-	v_max_input = @bind v_max PlutoUI.Slider(drange(:v_max),default=defaults[:v_max],show_value=true)
-	md"""
-	 `S`: $(S_input),`syn_E`: $syn_E_input, `M`: $(M_input), 	`k_SE`: $k_SE_input, `k_SM`: $k_SM_input,  `k_N`: $k_N_input, `s_B`: $s_B_input, `v_max`: $v_max_input $restore_defaults_button
-	"""
+    function drange(k; center = defaults[k], f1 = 0.1, f2 = 2, length = 100)
+        range((center * f1), (center * f2); length)
+    end
+    S_input = @bind S PlutoUI.Slider(0:4000, default = defaults[:S], show_value = true)
+    M_input = @bind M PlutoUI.Slider(2000:10_000, default = defaults[:M], show_value = true)
+    k_SE_input = @bind k_SE PlutoUI.Slider(50:500,
+        default = defaults[:k_SE],
+        show_value = true)
+    k_SM_input = @bind k_SM PlutoUI.Slider(5:100,
+        default = defaults[:k_SM],
+        show_value = true)
+    syn_E_input = @bind syn_E PlutoUI.Slider(drange(:syn_E),
+        default = defaults[:syn_E],
+        show_value = true)
+    k_N_input = @bind k_N PlutoUI.Slider(drange(:k_N),
+        default = defaults[:k_N],
+        show_value = true)
+    s_B_input = @bind s_B PlutoUI.Slider(0.001:0.025:0.6,
+        default = defaults[:s_B],
+        show_value = true)
+    v_max_input = @bind v_max PlutoUI.Slider(drange(:v_max),
+        default = defaults[:v_max],
+        show_value = true)
+    md"""
+     `S`: $(S_input),`syn_E`: $syn_E_input, `M`: $(M_input), 	`k_SE`: $k_SE_input, `k_SM`: $k_SM_input,  `k_N`: $k_N_input, `s_B`: $s_B_input, `v_max`: $v_max_input $restore_defaults_button
+    """
 end
 
 # ╔═╡ f39ca654-a46b-4758-8d15-0200ddd6d722
 
-
 # ╔═╡ 883ad6cb-353b-4093-8e32-55f80ab99c91
 let
-	Ss = drange(:S;center=S)
-	dS = calc_d_S.(Ss,syn_E; M, k_SE, k_SM, s_B, v_max, k_N)
-	plot_dS = Plots.plot(Ss, dS, xlabel="S (gC/m2)", ylabel="dS (gC/m2/yr)", label=nothing)
-	md"""
-	$plot_dS
-	"""
+    Ss = drange(:S; center = S)
+    dS = calc_d_S.(Ss, syn_E; M, k_SE, k_SM, s_B, v_max, k_N)
+    plot_dS = Plots.plot(Ss,
+        dS,
+        xlabel = "S (gC/m2)",
+        ylabel = "dS (gC/m2/yr)",
+        label = nothing)
+    md"""
+    $plot_dS
+    """
 end
 
 # ╔═╡ 421e01ce-0742-498c-81c6-05e62fea0aaf
 let
-	syn_Es = drange(:syn_E;center= syn_E)
-	dS = calc_d_S.(S,syn_Es; M, k_SE, k_SM, s_B, v_max, k_N)
-	plot_dS = Plots.plot(syn_Es, dS, xlabel="syn_E (gC/m2/yr)", ylabel="dS (gC/m2/yr)", label=nothing)
-	md"""
-	$plot_dS
-	"""
+    syn_Es = drange(:syn_E; center = syn_E)
+    dS = calc_d_S.(S, syn_Es; M, k_SE, k_SM, s_B, v_max, k_N)
+    plot_dS = Plots.plot(syn_Es,
+        dS,
+        xlabel = "syn_E (gC/m2/yr)",
+        ylabel = "dS (gC/m2/yr)",
+        label = nothing)
+    md"""
+    $plot_dS
+    """
 end
 
 # ╔═╡ 6a14f418-dc70-45db-90f6-6ade6fe7ba98
-	md"""
-	 `S`: $(S_input),`syn_E`: $syn_E_input, `M`: $(M_input), 	`k_SE`: $k_SE_input, `k_SM`: $k_SM_input,  `k_N`: $k_N_input, `s_B`: $s_B_input, `v_max`: $v_max_input $restore_defaults_button
-	"""
+md"""
+ `S`: $(S_input),`syn_E`: $syn_E_input, `M`: $(M_input), 	`k_SE`: $k_SE_input, `k_SM`: $k_SM_input,  `k_N`: $k_N_input, `s_B`: $s_B_input, `v_max`: $v_max_input $restore_defaults_button
+"""
 
 # ╔═╡ 089ac9fb-6ede-4e0f-a4f1-6634344287d3
 let
-	syn_Es = drange(:syn_E;center= syn_E)
-	k_m = calc_k_m.(syn_Es; M, k_SE, k_SM, s_B)
-	plot_dS = Plots.plot(syn_Es, k_m, xlabel="syn_E (gC/m2/yr)", ylabel="k_m (gC/m2)", label=nothing)
-	md"""
-	$plot_dS
-	"""
+    syn_Es = drange(:syn_E; center = syn_E)
+    k_m = calc_k_m.(syn_Es; M, k_SE, k_SM, s_B)
+    plot_dS = Plots.plot(syn_Es,
+        k_m,
+        xlabel = "syn_E (gC/m2/yr)",
+        ylabel = "k_m (gC/m2)",
+        label = nothing)
+    md"""
+    $plot_dS
+    """
 end
 
 # ╔═╡ 6ad003a0-4f24-40ec-ac12-258128f42906
 let
-	Ss = drange(:S;center=S)
-	k_m = calc_k_m.(syn_E; M, k_SE, k_SM, s_B)
-	plot_dS = Plots.plot(Ss, k_m, xlabel="S (gC/m2)", ylabel="k_m (gC/m2)", label=nothing)
-	md"""
-	$plot_dS
-	"""
+    Ss = drange(:S; center = S)
+    k_m = calc_k_m.(syn_E; M, k_SE, k_SM, s_B)
+    plot_dS = Plots.plot(Ss,
+        k_m,
+        xlabel = "S (gC/m2)",
+        ylabel = "k_m (gC/m2)",
+        label = nothing)
+    md"""
+    $plot_dS
+    """
 end
 
 # ╔═╡ b01a1343-c3d4-48bc-a6ad-047d1e3e89b6
 fig = let
-	S = range(50.,4000,length=100)
-	syn_E = drange(:syn_E)
-	@cast d_S[i,j] := calc_d_S(S[i],syn_E[j];M, k_SE, k_SM, s_B, v_max, k_N)
-	fig = Figure()
-	ax = fig[1,1] = CairoMakie.Axis(fig, xlabel="S (gC/m2", ylabel="syn_E (gC/m2/yr")
-	hm = CairoMakie.heatmap!(ax, S,syn_E, d_S)
-	CairoMakie.contour!(ax,S,syn_E, d_S)
-	Colorbar(fig[1, 2], hm, label = "dS")
-	# k_mS = k_SE .* (1 .+ M ./ k_SM)
-	# dSapp = v_max .* E .* S ./ (k_mS .+ S)
-	# dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
-	# k_mS
-	# plot_ks = plot(S, dSapp./S; xlab="S", ylab = "k_S = dS/S", label="small E approximation")
-	# plot!(plot_ks, S, dS./S, label="ECA", legend = :topright)
-	# plot_ds = plot(S, dSapp; xlab="S", ylab = "dS", label="small E approximation")
-	# plot!(plot_ds, S, dS, label="ECA", legend = :bottomright)
-	# plot_ks, plot_ds
-	# md"""
-	# $plot_ks $plot_ds
-	# """
-	fig
+    S = range(50.0, 4000, length = 100)
+    syn_E = drange(:syn_E)
+    @cast d_S[i, j] := calc_d_S(S[i], syn_E[j]; M, k_SE, k_SM, s_B, v_max, k_N)
+    fig = Figure()
+    ax = fig[1, 1] = CairoMakie.Axis(fig, xlabel = "S (gC/m2", ylabel = "syn_E (gC/m2/yr")
+    hm = CairoMakie.heatmap!(ax, S, syn_E, d_S)
+    CairoMakie.contour!(ax, S, syn_E, d_S)
+    Colorbar(fig[1, 2], hm, label = "dS")
+    # k_mS = k_SE .* (1 .+ M ./ k_SM)
+    # dSapp = v_max .* E .* S ./ (k_mS .+ S)
+    # dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
+    # k_mS
+    # plot_ks = plot(S, dSapp./S; xlab="S", ylab = "k_S = dS/S", label="small E approximation")
+    # plot!(plot_ks, S, dS./S, label="ECA", legend = :topright)
+    # plot_ds = plot(S, dSapp; xlab="S", ylab = "dS", label="small E approximation")
+    # plot!(plot_ds, S, dS, label="ECA", legend = :bottomright)
+    # plot_ks, plot_ds
+    # md"""
+    # $plot_ks $plot_ds
+    # """
+    fig
 end
 
 # ╔═╡ cc0e855e-735b-44be-808f-796027379a15
@@ -268,8 +300,8 @@ propertynames(fig)
 
 # ╔═╡ 5b33f304-93d3-4490-80f5-6cff05cfc824
 begin
-	fig.axis.xlabel="x"
-	fig
+    fig.axis.xlabel = "x"
+    fig
 end
 
 # ╔═╡ 255018b9-28c0-442c-8fa9-9698e7d7b513

@@ -7,7 +7,12 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                "AbstractPlutoDingetjes")].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -81,65 +86,80 @@ restore_defaults_button = @bind restore_defaults_event Button("Restore defaults"
 
 # ╔═╡ 78c6e7ce-de1a-466a-89f3-f7700d754594
 begin
-	get_defaults = () -> Dict(:S => 3000., :M => 4_000., :k_SE => 200., :k_SM => 25., :E => 1., :v_max => 5*200.)
-	defaults = get_defaults()
-	let
-		restore_defaults_event
-		#@info "event triggered " * string(rand())
-		defaults = get_defaults()
-	end
+    get_defaults = () -> Dict(:S => 3000.0,
+        :M => 4_000.0,
+        :k_SE => 200.0,
+        :k_SM => 25.0,
+        :E => 1.0,
+        :v_max => 5 * 200.0)
+    defaults = get_defaults()
+    let
+        restore_defaults_event
+        #@info "event triggered " * string(rand())
+        defaults = get_defaults()
+    end
 end;
 
 # ╔═╡ 6a14f418-dc70-45db-90f6-6ade6fe7ba98
 begin
-	S_input = @bind S Slider(0:4000,default=defaults[:S], show_value=true)
-	M_input = @bind M Slider(2000:10_000,default=defaults[:M], show_value=true)
-	k_SE_input = @bind k_SE Slider(50:500,default=defaults[:k_SE],show_value=true)
-	k_SM_input = @bind k_SM Slider(5:100,default=defaults[:k_SM],show_value=true)
-	E_input = @bind E Slider(1:400,default=defaults[:E],show_value=true)
-	v_max_input = @bind v_max Slider(1:10 .* defaults[:k_SE],default=defaults[:v_max],show_value=true)
-	md"""
-	 `M`: $(M_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
-	"""
+    S_input = @bind S Slider(0:4000, default = defaults[:S], show_value = true)
+    M_input = @bind M Slider(2000:10_000, default = defaults[:M], show_value = true)
+    k_SE_input = @bind k_SE Slider(50:500, default = defaults[:k_SE], show_value = true)
+    k_SM_input = @bind k_SM Slider(5:100, default = defaults[:k_SM], show_value = true)
+    E_input = @bind E Slider(1:400, default = defaults[:E], show_value = true)
+    v_max_input = @bind v_max Slider(1:(10 .* defaults[:k_SE]),
+        default = defaults[:v_max],
+        show_value = true)
+    md"""
+     `M`: $(M_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
+    """
 end
 
 # ╔═╡ b01a1343-c3d4-48bc-a6ad-047d1e3e89b6
 let
-	S = 50:4000
-	k_mS = k_SE .* (1 .+ M ./ k_SM)
-	dSapp = v_max .* E .* S ./ (k_mS .+ S)
-	dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
-	k_mS
-	plot_ks = plot(S, dSapp./S; xlab="S", ylab = "k_S = dS/S", label="small E approximation")
-	plot!(plot_ks, S, dS./S, label="ECA", legend = :topright)
-	plot_ds = plot(S, dSapp; xlab="S", ylab = "dS", label="small E approximation")
-	plot!(plot_ds, S, dS, label="ECA", legend = :bottomright)
-	plot_ks, plot_ds
-	md"""
-	$plot_ks $plot_ds
-	"""
+    S = 50:4000
+    k_mS = k_SE .* (1 .+ M ./ k_SM)
+    dSapp = v_max .* E .* S ./ (k_mS .+ S)
+    dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
+    k_mS
+    plot_ks = plot(S,
+        dSapp ./ S;
+        xlab = "S",
+        ylab = "k_S = dS/S",
+        label = "small E approximation")
+    plot!(plot_ks, S, dS ./ S, label = "ECA", legend = :topright)
+    plot_ds = plot(S, dSapp; xlab = "S", ylab = "dS", label = "small E approximation")
+    plot!(plot_ds, S, dS, label = "ECA", legend = :bottomright)
+    plot_ks, plot_ds
+    md"""
+    $plot_ks $plot_ds
+    """
 end
 
 # ╔═╡ 8c884045-aa8b-465c-9f8e-2d541b0441e2
-	md"""
-	 `S`: $(S_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
-	"""
+md"""
+ `S`: $(S_input), `k_SE`: $k_SE_input, `k_SM`: $k_SM_input, `E`: $E_input, `v_max`: $v_max_input $restore_defaults_button
+"""
 
 # ╔═╡ 24f4d97b-3d2c-495e-a630-31e4b09f4972
 let
-	M = 2_000:6_000
-	k_mS = k_SE .* (1 .+ M ./ k_SM)
-	dSapp = v_max .* E .* S ./ (k_mS .+ S)
-	dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
-	k_mS
-	plot_ks = plot(M, dSapp./S; xlab="M", ylab = "k_S = dS/S", label="small E approximation")
-	plot!(plot_ks, M, dS./S, label="ECA", legend = :topright)
-	plot_ds = plot(M, dSapp; xlab="M", ylab = "dS", label="small E approximation")
-	plot!(plot_ds, M, dS, label="ECA", legend = :bottomright)
-	plot_ks, plot_ds
-	md"""
-	$plot_ks 
-	"""
+    M = 2_000:6_000
+    k_mS = k_SE .* (1 .+ M ./ k_SM)
+    dSapp = v_max .* E .* S ./ (k_mS .+ S)
+    dS = v_max .* E .* S ./ (k_SE .+ S .+ E .+ k_SE ./ k_SM .* M)
+    k_mS
+    plot_ks = plot(M,
+        dSapp ./ S;
+        xlab = "M",
+        ylab = "k_S = dS/S",
+        label = "small E approximation")
+    plot!(plot_ks, M, dS ./ S, label = "ECA", legend = :topright)
+    plot_ds = plot(M, dSapp; xlab = "M", ylab = "dS", label = "small E approximation")
+    plot!(plot_ds, M, dS, label = "ECA", legend = :bottomright)
+    plot_ks, plot_ds
+    md"""
+    $plot_ks 
+    """
 end
 
 # ╔═╡ d9c6b6c8-da4d-442b-9e9c-2dee4a10be9a

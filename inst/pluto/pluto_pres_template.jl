@@ -7,7 +7,12 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                "AbstractPlutoDingetjes")].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -25,29 +30,29 @@ html"<button onclick='present()'>present</button>"
 
 # ╔═╡ 0bb068de-512d-11eb-14e3-8f3de757910d
 struct TwoColumn{A, B}
-	left::A
-	right::B
+    left::A
+    right::B
 end
 
 # ╔═╡ 827fbc3a-512d-11eb-209e-cd74ddc17bae
 function Base.show(io, mime::MIME"text/html", tc::TwoColumn)
-	write(io,
-		"""
-		<div style="display: flex;">
-			<div style="flex: 50%;">
-		""")
-	show(io, mime, tc.left)
-	write(io,
-		"""
-			</div>
-			<div style="flex: 50%;">
-		""")
-	show(io, mime, tc.right)
-	write(io,
-		"""
-			</div>
-		</div>
-	""")
+    write(io,
+        """
+        <div style="display: flex;">
+        	<div style="flex: 50%;">
+        """)
+    show(io, mime, tc.left)
+    write(io,
+        """
+        	</div>
+        	<div style="flex: 50%;">
+        """)
+    show(io, mime, tc.right)
+    write(io,
+        """
+       		</div>
+       	</div>
+       """)
 end
 
 # ╔═╡ 6382a73e-5102-11eb-1cfb-f192df63435a
@@ -65,13 +70,13 @@ Each grid point can **move** freely **along verical axis**:
 
 # ╔═╡ 4c75d21e-511e-11eb-0dcc-c789e4668f3f
 let
-	membr = zeros(7, 7)
-	a = @animate for t in 0:.1:2π
-		membr[4, 4] = 3sin(t)
-		plot([4, 4], [4, 4], [-5, 5], legend=:none, lw=3, s=:dot)
-		wireframe!(membr, zlim=(-5,5), showaxis=false, size=(600,300))
-	end
-	gif(a, fps = 10)
+    membr = zeros(7, 7)
+    a = @animate for t in 0:0.1:(2π)
+        membr[4, 4] = 3sin(t)
+        plot([4, 4], [4, 4], [-5, 5], legend = :none, lw = 3, s = :dot)
+        wireframe!(membr, zlim = (-5, 5), showaxis = false, size = (600, 300))
+    end
+    gif(a, fps = 10)
 end
 
 # ╔═╡ b1c888e0-51f1-11eb-3539-d9029b5aadca
@@ -84,29 +89,27 @@ md"""
 md"## TwoColumn"
 
 # ╔═╡ 0577087e-9da7-4171-95b7-d8f3a61447fa
-TwoColumn(
-	md"""
-	Membrane counteracts curvature → Laplacian
-	```math
-	Δ h = \frac{∂^2 h}{∂ x^2} + \frac{∂^2 h}{∂ y^2}
-	```
-	("how far below environment?")
-	
-	Bended membrane experiences **force** ``\kappa ⋅ Δ h``
-	
-	and stores **energy** ``\frac{\kappa}{2} (\Delta h)^2``.
-	""",
-	let
-		membr = zeros(7, 7)
-		membr[3, 4] = 1.
-		membr[2,2] = -2.
-		wireframe(membr, zlim=(-5,5), showaxis=false, size=(400,300))
-		plot!([4, 4], [3, 3], [-1, -3], lw=3, c=:darkblue, leg=:none)
-		plot!([4], [3], [-3], shape=:dtriangle, c=:darkblue)
-		plot!([2, 2], [2, 2], [.2, 2.2], lw=3, c=:darkblue, leg=:none)
-		plot!([2], [2], [2.2], shape=:utriangle, c=:darkblue)
-	end
-)
+TwoColumn(md"""
+          Membrane counteracts curvature → Laplacian
+          ```math
+          Δ h = \frac{∂^2 h}{∂ x^2} + \frac{∂^2 h}{∂ y^2}
+          ```
+          ("how far below environment?")
+
+          Bended membrane experiences **force** ``\kappa ⋅ Δ h``
+
+          and stores **energy** ``\frac{\kappa}{2} (\Delta h)^2``.
+          """,
+    let
+        membr = zeros(7, 7)
+        membr[3, 4] = 1.0
+        membr[2, 2] = -2.0
+        wireframe(membr, zlim = (-5, 5), showaxis = false, size = (400, 300))
+        plot!([4, 4], [3, 3], [-1, -3], lw = 3, c = :darkblue, leg = :none)
+        plot!([4], [3], [-3], shape = :dtriangle, c = :darkblue)
+        plot!([2, 2], [2, 2], [0.2, 2.2], lw = 3, c = :darkblue, leg = :none)
+        plot!([2], [2], [2.2], shape = :utriangle, c = :darkblue)
+    end)
 
 # ╔═╡ 07cfb42c-52bd-11eb-3cc4-f1b62fde1267
 md"""
@@ -114,7 +117,7 @@ md"""
 """
 
 # ╔═╡ bcfa8132-52dc-11eb-031e-8bff734f18b1
-sl_α = @bind α Slider(1:.05:3, default=1.5);
+sl_α = @bind α Slider(1:0.05:3, default = 1.5);
 
 # ╔═╡ 41c6409a-52dd-11eb-146f-3dcd349a59d7
 sl_α

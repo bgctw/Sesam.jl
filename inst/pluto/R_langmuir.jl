@@ -7,7 +7,12 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     quote
-        local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
+        local iv = try
+            Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"),
+                "AbstractPlutoDingetjes")].Bonds.initial_value
+        catch
+            b -> missing
+        end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
@@ -28,7 +33,7 @@ md"## Residue pool partially sorbed"
 
 # ╔═╡ a392d095-19f6-495f-8c59-a93eace2b9a6
 with_logger(NullLogger()) do
-	LocalResource("fig/R_langmuir.png", :width => 200)
+    LocalResource("fig/R_langmuir.png", :width => 200)
 end
 
 # ╔═╡ 9f88ad48-6ca1-41ab-8b56-7951f30edd3d
@@ -163,50 +168,56 @@ restore_defaults_button = @bind restore_defaults_event Button("Restore defaults"
 
 # ╔═╡ 78c6e7ce-de1a-466a-89f3-f7700d754594
 begin
-	get_defaults = () -> Dict(:Q_max => 10_000, :K_eqR => 1e-3)
-	defaults = get_defaults()
-	let
-		restore_defaults_event
-		#@info "event triggered " * string(rand())
-		defaults = get_defaults()
-	end
+    get_defaults = () -> Dict(:Q_max => 10_000, :K_eqR => 1e-3)
+    defaults = get_defaults()
+    let
+        restore_defaults_event
+        #@info "event triggered " * string(rand())
+        defaults = get_defaults()
+    end
 end;
 
 # ╔═╡ 6a14f418-dc70-45db-90f6-6ade6fe7ba98
 begin
-	Q_max_input = @bind Q_max Slider(5001:100:20_000,default=defaults[:Q_max], show_value=true)
-	K_eqR_input = @bind K_eqR_log Slider(-5:1,default=log10(defaults[:K_eqR]),show_value=true)
-	md"""
-	 `Q_max`: $(Q_max_input), `K_eqR`: $K_eqR_input, $restore_defaults_button
-	"""
+    Q_max_input = @bind Q_max Slider(5001:100:20_000,
+        default = defaults[:Q_max],
+        show_value = true)
+    K_eqR_input = @bind K_eqR_log Slider(-5:1,
+        default = log10(defaults[:K_eqR]),
+        show_value = true)
+    md"""
+     `Q_max`: $(Q_max_input), `K_eqR`: $K_eqR_input, $restore_defaults_button
+    """
 end
 
 # ╔═╡ b01a1343-c3d4-48bc-a6ad-047d1e3e89b6
 begin
-	R = 500:5000
-	Raa = R./(Q_max .- R)./exp(K_eqR_log)
-	phalv = (Q_max .- R .+ 1/(exp(K_eqR_log)))/2
-	q = -R/exp(K_eqR_log)
-	Raar = -phalv .+ sqrt.(phalv .* phalv .- q)
-	#
-	k_R = 5. # Ra turns over 5 times a year
-	k_R_app = k_R .* Raar ./ R
+    R = 500:5000
+    Raa = R ./ (Q_max .- R) ./ exp(K_eqR_log)
+    phalv = (Q_max .- R .+ 1 / (exp(K_eqR_log))) / 2
+    q = -R / exp(K_eqR_log)
+    Raar = -phalv .+ sqrt.(phalv .* phalv .- q)
+    #
+    k_R = 5.0 # Ra turns over 5 times a year
+    k_R_app = k_R .* Raar ./ R
 end;
 
 # ╔═╡ 9bc45335-e984-444b-9155-958211c29a1b
-plot(R, Raa; xlab="R", ylab = "R_a", label="R_a approximation"); plot!(R, Raar, label="R_a root", legend = :topleft)
+plot(R, Raa; xlab = "R", ylab = "R_a", label = "R_a approximation");
+plot!(R, Raar, label = "R_a root", legend = :topleft);
 
 # ╔═╡ ecdf3d90-c555-4d66-b446-d54e6ba4c731
-plot(R, Raa ./ R; xlab="R", ylab = "R_a/R", label="R_a approximation"); plot!(R, Raar ./ R, label="R_a root", legend = :topleft)
+plot(R, Raa ./ R; xlab = "R", ylab = "R_a/R", label = "R_a approximation");
+plot!(R, Raar ./ R, label = "R_a root", legend = :topleft);
 
 # ╔═╡ bdce3544-6b92-4978-b0c3-fef5b114a28e
-plot(R, 1 ./ k_R_app; xlab="R", ylab = "1/k_R_app (yr)", label=nothing)
+plot(R, 1 ./ k_R_app; xlab = "R", ylab = "1/k_R_app (yr)", label = nothing)
 
 # ╔═╡ 5c428f0e-9fa5-4a96-879d-f05789da402b
 md"nearly linear decrease with R, despite nonlinearity when R approaches Q_max"
 
 # ╔═╡ b5f2c022-cee5-43de-9194-bfeac029fb84
-plot(R, k_R_app; xlab="R", ylab = "k_R_app (1/yr)", label=nothing)
+plot(R, k_R_app; xlab = "R", ylab = "k_R_app (1/yr)", label = nothing)
 
 # ╔═╡ 255018b9-28c0-442c-8fa9-9698e7d7b513
 md"## Thanks"
