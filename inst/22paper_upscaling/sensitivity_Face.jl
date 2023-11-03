@@ -111,7 +111,7 @@ som_change(sol0)
 # parsyssymbol(s.k_L)
 
 cols = (:par, :dType, :mode, :upper)
-parmsModeUpperRows = [
+paramsModeUpperRows = [
     (s.β_NB, LogNormal, 8.0, 16.0),
     (s.β_NEnz, LogNormal, 3.0, 3.5),
     (s.k_mN_L, LogNormal, 60 * 0.05, 120 * 2.0),
@@ -129,7 +129,7 @@ parmsModeUpperRows = [
     (s.ν_N, LogNormal, 0.9, 0.99),
     #(:kIPlant, LogNormal, 10.57 , 20)
 ]
-df_dist = SSA.fit_distributions(parmsModeUpperRows)
+df_dist = SSA.fit_distributions(paramsModeUpperRows)
 transform!(df_dist, :par => identity => :par_num)
 transform!(df_dist, :par => ByRow(symbol) => :par)
 

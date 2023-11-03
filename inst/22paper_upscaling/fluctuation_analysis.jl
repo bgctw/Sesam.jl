@@ -189,11 +189,11 @@ probs = ODEProblem(ssp, u0, tspan, p)
 #ps_ss = ProblemParSetter(ssp, states(ssp))
 ps_ss = ProblemParSetter(ssp, CA.Axis(symbols_state(ssp)))
 
-ue_tmp = copy(probe.u0)
+uend_tmp = copy(probe.u0)
 check_unstable_e = (dt, u, p, t) -> begin
     !any(isnan, u) && return false
     @show t, label_state(ps_se, u)
-    ue_tmp[:] .= u
+    uend_tmp[:] .= u
     true
 end
 us_tmp = copy(probs.u0)

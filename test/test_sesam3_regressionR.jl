@@ -21,7 +21,7 @@ sFS_r = CP.sesam_fixed_substrates(sr)
 states(spFS_r)
 
 @parameters β_NR0 β_PR0
-parms = Dict(s.β_NB => 7.16
+params = Dict(s.β_NB => 7.16
     #, cnBW => 10    ##<< C/N ratio of cell walls (that go to R, )
     , s.β_NEnz => 3.1     # Sterner02: Protein (Fig. 2.2.), high N investment (low P)
     #,cnE => 7.16
@@ -57,39 +57,39 @@ parms = Dict(s.β_NB => 7.16
     , β_PR0 => 40
     #, pl.β_Pi0 => 40*3
     , pl.β_Pi0 => 40 * 6, s.i_BP => 0.4, pl.s_EP0 => 0.3 * 0.01 * 365 / 20, s.β_Pm => 500)
-parms[s.k_mN_R] = parms[s.k_mN_L]
-merge!(parms,
+params[s.k_mN_R] = params[s.k_mN_L]
+merge!(params,
     Dict(
         #  kmR => kmL => km
         # eps1 => eps2 => eps
         #cnER => cnEL => cnE
         #kNR => kNL => kN
-        s.l_P => parms[s.l_N],       # leaching rate of inorganic P equals that of N
-        s.ν_P => parms[s.ν_N],     # mineralization of P during decomposiition equals that of N
-        pl.k_PlantP0 => parms[pl.k_PlantN0],  # plant uptake rate of P equals that of N
+        s.l_P => params[s.l_N],       # leaching rate of inorganic P equals that of N
+        s.ν_P => params[s.ν_N],     # mineralization of P during decomposiition equals that of N
+        pl.k_PlantP0 => params[pl.k_PlantN0],  # plant uptake rate of P equals that of N
         pl.i_IP0 => 10.0,
         pl.i_IN0 => 10.0,
-        plc.u_PlantNmax0 => parms[pl.i_L0] / parms[pl.β_Ni0],# same litter input as plant uptake
+        plc.u_PlantNmax0 => params[pl.i_L0] / params[pl.β_Ni0],# same litter input as plant uptake
         pl.k_PlantN0 => 0.0,
         plc.u_PlantNmax0 => 0.0))
-parms = CP.get_updated_Penz_pars(parms, s)
+params = CP.get_updated_Penz_pars(params, s)
 
 x0C = ComponentVector(R = 7000, L = 200)
-x0 = x0Orig = Dict(s.B => 20, s.R => x0C.R, s.R_N => x0C.R / parms[β_NR0],
-    s.R_P => x0C.R / parms[β_PR0], s.L => x0C.L, s.L_N => x0C.L / parms[pl.β_Ni0],
-    s.L_P => x0C.L / parms[pl.β_Pi0], s.I_N => 1, s.I_P => 1, s.α_L => 0.4, s.α_R => 0.5,
+x0 = x0Orig = Dict(s.B => 20, s.R => x0C.R, s.R_N => x0C.R / params[β_NR0],
+    s.R_P => x0C.R / params[β_PR0], s.L => x0C.L, s.L_N => x0C.L / params[pl.β_Ni0],
+    s.L_P => x0C.L / params[pl.β_Pi0], s.I_N => 1, s.I_P => 1, s.α_L => 0.4, s.α_R => 0.5,
     s.α_P => 0.1)
 #
 x0C_Nlim = ComponentVector(R = 1000, L = 200)
-x0Nlim = Dict(s.B => 20, s.R => x0C_Nlim.R, s.R_N => x0C_Nlim.R / parms[β_NR0],
-    s.R_P => x0C_Nlim.R / parms[β_PR0], s.L => x0C_Nlim.L,
-    s.L_N => x0C_Nlim.L / parms[pl.β_Ni0], s.L_P => x0C_Nlim.L / parms[pl.β_Pi0],
+x0Nlim = Dict(s.B => 20, s.R => x0C_Nlim.R, s.R_N => x0C_Nlim.R / params[β_NR0],
+    s.R_P => x0C_Nlim.R / params[β_PR0], s.L => x0C_Nlim.L,
+    s.L_N => x0C_Nlim.L / params[pl.β_Ni0], s.L_P => x0C_Nlim.L / params[pl.β_Pi0],
     s.I_N => 1e-12, s.I_P => 10, s.α_L => 0.4, s.α_R => 0.5, s.α_P => 0.1)
 
 @testset "regression to R version, fixed substrates" begin
     tspan = (0, 2100)
-    probFS = ODEProblem(spFS, x0, tspan, parms)
-    probFS_r = ODEProblem(spFS_r, x0, tspan, parms)
+    probFS = ODEProblem(spFS, x0, tspan, params)
+    probFS_r = ODEProblem(spFS_r, x0, tspan, params)
     sol = solLRP_r = solve(probFS_r, Rodas4())
     sol = solLRP = solve(probFS, Rodas4())
     # see Sesam R project test_modSesam3P.R
@@ -99,9 +99,9 @@ end;
 
 @testset "regression to R version, fixed substrates Nlim" begin
     tspan = (0, 8100)
-    probFS_r = ODEProblem(spFS_r, x0Nlim, tspan, parms)
+    probFS_r = ODEProblem(spFS_r, x0Nlim, tspan, params)
     sol = solLRP_r = solve(probFS_r, Rodas4())
-    probFS = ODEProblem(spFS, x0Nlim, tspan, parms)
+    probFS = ODEProblem(spFS, x0Nlim, tspan, params)
     sol = solLRP = solve(probFS, Rodas4())
     # see Sesam R project test_modSesam3P.R
     @test isapprox(sol[s.B][end], 5.4536778, atol = 1e-5)
@@ -113,9 +113,9 @@ end;
     x0Plim[s.I_N] = 10.0
     x0Plim[s.I_P] = 0.002
     tspan = (0, 8100)
-    probFS_r = ODEProblem(spFS_r, x0Plim, tspan, parms)
+    probFS_r = ODEProblem(spFS_r, x0Plim, tspan, params)
     sol = solLRP_r = solve(probFS_r, Rodas4())
-    probFS = ODEProblem(spFS, x0Plim, tspan, parms)
+    probFS = ODEProblem(spFS, x0Plim, tspan, params)
     sol = solLRP = solve(probFS, Rodas4())
     # see Sesam R project test_modSesam3P.R
     @test isapprox(sol[s.B][end], 0.01057638, atol = 1e-5)
@@ -124,8 +124,8 @@ end;
 
 @testset "regression to R version, variable substrates" begin
     tspan = (0, 8000)
-    prob = ODEProblem(sp, x0, tspan, parms)
-    prob_r = ODEProblem(spr, x0, tspan, parms)
+    prob = ODEProblem(sp, x0, tspan, params)
+    prob_r = ODEProblem(spr, x0, tspan, params)
     sol = solLRP_r = solve(prob_r, Rodas4())
     sol = solLRP = solve(prob, Rodas4())
     # see Sesam R project test_modSesam3P.R
@@ -135,10 +135,10 @@ end;
 
 @testset "regression to R version, variable substrates Nlim" begin
     tspan = (0, 8000)
-    parmsNlim = merge(parms, Dict(pl.i_IN0 => 1e-5,
+    paramsNlim = merge(params, Dict(pl.i_IN0 => 1e-5,
         pl.β_Ni0 => 40.0))
-    prob = ODEProblem(sp, x0Nlim, tspan, parmsNlim)
-    prob_r = ODEProblem(spr, x0Nlim, tspan, parmsNlim)
+    prob = ODEProblem(sp, x0Nlim, tspan, paramsNlim)
+    prob_r = ODEProblem(spr, x0Nlim, tspan, paramsNlim)
     sol = solLRP_r = solve(prob_r, Rodas4())
     sol = solLRP = solve(prob, Rodas4())
     # see Sesam R project test_modSesam3P.R
@@ -150,9 +150,9 @@ end;
     tspan = (0, 8000)
     x0Plim = copy(x0)
     x0Plim[s.I_P] = 0.002
-    parmsPlim = merge(parms, Dict(pl.i_IP0 => 1e-5))
-    prob = ODEProblem(sp, x0Plim, tspan, parmsPlim)
-    prob_r = ODEProblem(spr, x0Plim, tspan, parmsPlim)
+    paramsPlim = merge(params, Dict(pl.i_IP0 => 1e-5))
+    prob = ODEProblem(sp, x0Plim, tspan, paramsPlim)
+    prob_r = ODEProblem(spr, x0Plim, tspan, paramsPlim)
     sol = solLRP_r = solve(prob_r, Rodas4())
     sol = solLRP = solve(prob, Rodas4())
     # see Sesam R project test_modSesam3P.R
@@ -194,9 +194,9 @@ tmpf = () -> begin
     sol[s.mdu][1]
     sol[s.mdu][1]
     sol[s.mdu][1]
-    parms[s.k_mN_P]
-    parms[s.β_PB]
-    parms[s.ν_N]
+    params[s.k_mN_P]
+    params[s.β_PB]
+    params[s.ν_N]
     ts = (0, 0.02)
     ts = (0, 2)
     ts = (0, 0.07)
@@ -217,7 +217,7 @@ tmpf = () -> begin
     plot(sol, idxs = [s.β_PR], tspan = ts)
     plot(sol, idxs = [s.tvr_B, s.syn_Enz, s.tvr_Enz], tspan = ts)
     #plot(sol, idxs=[s.β_PBtvr], tspan=ts)
-    #plot(sol, idxs=[(parms[s.ϵ_tvr]*s.tvr_B + (1-parms[s.κ_E])*s.tvr_Enz)/(parms[s.ϵ_tvr]*s.tvr_B/s.β_PBtvr + (1-parms[s.κ_E])*s.tvr_Enz/parms[s.β_PEnz])], tspan=ts) # input to R is of C:P 40, but dec_RP decreases C:P of R pool
+    #plot(sol, idxs=[(params[s.ϵ_tvr]*s.tvr_B + (1-params[s.κ_E])*s.tvr_Enz)/(params[s.ϵ_tvr]*s.tvr_B/s.β_PBtvr + (1-params[s.κ_E])*s.tvr_Enz/params[s.β_PEnz])], tspan=ts) # input to R is of C:P 40, but dec_RP decreases C:P of R pool
 
     # test julia solution in R
     popt = ComponentVector(s₊B = 1)

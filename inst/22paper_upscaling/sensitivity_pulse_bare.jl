@@ -45,7 +45,7 @@ pN = Dict(s.i_BN => 0.4, ##<< potential immobilization flux rate
     pl.k_PlantN0 => 0.0,
     pl.i_IN0 => 0.0,
     pl.i_IP0 => 0.0,
-    #pl.β_Ni0, # need to be set dependend on scenario
+    #pl.β_Ni0, # need to be set dependent on scenario
     pl.β_Pi0 => NaN)
 p = merge(pC, pN)
 
@@ -86,9 +86,9 @@ tend = 800.0 # will end earlier by callback if biomass gets very low
 tspan_sim = (0, tend) # simulate 500 yrs spinup, increase at yr 20
 prob0 = ODEProblem(sp, Dict(u0_cn0), tspan_sim, p)
 
-# in index to update initial states and parms specify distributions already
+# in index to update initial states and params specify distributions already
 # in big parts redundant to sensitivity_face
-parmsModeUpperRows = [
+paramsModeUpperRows = [
     (s.β_NB, LogNormal, 8.0, 16.0),
     (s.β_NEnz, LogNormal, 3.0, 3.5),
     (s.k_mN_L, LogNormal, 60 * 0.05, 120 * 2.0),
@@ -109,7 +109,7 @@ parmsModeUpperRows = [
 using Random;
 Random.seed!(0);
 # :par should hold symbols instead of Nums
-df_dist = SSA.fit_distributions(parmsModeUpperRows)
+df_dist = SSA.fit_distributions(paramsModeUpperRows)
 transform!(df_dist, :par => identity => :par_num)
 transform!(df_dist, :par => ByRow(symbol) => :par)
 
