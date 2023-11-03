@@ -87,7 +87,7 @@ sol0 = solve(prob0; saveat)
 # using BenchmarkTools
 # @btime sol0 = solve(prob0; saveat)
 
-# sensitiviy measure is the change in SOM stocks after 50 yrs increased input
+# sensitivity measure is the change in SOM stocks after 50 yrs increased input
 # compared to equilibrium
 function som_change(sol)
     !(sol.retcode ∈ (:Success, :Terminated)) &&
@@ -104,7 +104,7 @@ function som_change(sol)
 end
 som_change(sol0)
 
-# "Get the symbolic represenation of the Num omitting the namespaces."
+# "Get the symbolic representation of the Num omitting the namespaces."
 # parsymbol(num) = Symbol(first((match(r"₊(.+)$", string(num))).captures))
 # parsymbol(s.k_L)
 # parsyssymbol(num) = Symbol(replace(string(num), "₊" => "."))
@@ -253,7 +253,7 @@ recode!(dfp.target,
 subset!(dfp, :target => ByRow(x -> x ∈ ["SOM", "ΔSOM"]))
 levels!(dfp.target, ["SOM", "ΔSOM"])
 levels!(dfp.index, ["total", "first_order"]);
-# sort by decreasing effect withing index/target
+# sort by decreasing effect within index/target
 sort!(dfp, [:index, :target, :value])
 # relevel par so that index is preserved in plot
 levels!(dfp.par,

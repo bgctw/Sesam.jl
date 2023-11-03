@@ -44,7 +44,7 @@ params = Dict(s.β_NB => 7.16
     #,km => 0.03     ##<< enzyme half-saturation constant
     #,km => 14       ##<< enzyme half-saturation constant
     , s.m => 0.02 * 365, s.τ => 1 / 60 * 365, s.ϵ => 0.5, s.ϵ_tvr => 0.3   ##<< carbon use efficiency of microbial tvr (predators respire)
-    #,iR => 0         ##<< input modelled explicitely
+    #,iR => 0         ##<< input modelled explicitly
     , pl.i_L0 => 300       ##<< g/m2 input per year (half NPP)
     #,plantNUp => 300/70*1/4  ##<< plant N uptake balancing N inputs
     , plc.u_PlantNmax0 => 0   ##<< plant N uptake balancing N inputs

@@ -321,7 +321,7 @@ end
 cm2inch(x) = x / 2.54
 cm2inch.((8.3, 7))
 figpath = "tmp"
-#figpath = "inst/22paper_upscaling" # interactivly set to override paper figures
+#figpath = "inst/22paper_upscaling" # interactively set to override paper figures
 
 i_plot_Plots = () -> begin
     #depr: now using Makie instead of Plots
@@ -545,7 +545,7 @@ i_plot = () -> begin
         (-1, 0);
         variants = variants[[1, 2, 3], :],
         legend_position = :lb)
-    # annual cycle: after winter shiftring towards R and in autum rapidly shifting towards L 
+    # annual cycle: after winter shiftring towards R and in autumn rapidly shifting towards L 
 
     # plant uptake matches maximum
     fig, ax = TWP.pdf_figure_axis(xlabel = "Time (yr)",

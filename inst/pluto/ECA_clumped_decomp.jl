@@ -35,7 +35,7 @@ md"""
 
 # ╔═╡ 5526b178-148e-4d28-9cc5-7b04768ea2f0
 md"""
-The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) desribes limitation of rates for multiple competing consumers for multiple substrates.
+The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) describes limitation of rates for multiple competing consumers for multiple substrates.
 
 For a single substrate depolymerized, $S$,  by an enzyme $E_S$,  and also in sorption 
 equilibrium with the free mineral capacity $M$, the ECA formulation for decomposition $d_S$ of $S$ by enzyme $E_S$ is as follows.
@@ -55,7 +55,7 @@ We now assume concentration units and assume a subsoil with low biomass and low 
 
 In such a case biomass is probably clumped and can only access a fraction $s_B < 1$ of the modeled soil volume. 
 
-Considering only this accessible volume, the the concentrations for $S$ and $M$ do not change, but the enzyme levels are more concentrated, i.e devided by $s_B$, while the decomposition of $S$ in the entire volume is multiplied by $s_B$.
+Considering only this accessible volume, the the concentrations for $S$ and $M$ do not change, but the enzyme levels are more concentrated, i.e divided by $s_B$, while the decomposition of $S$ in the entire volume is multiplied by $s_B$.
 """
 
 # ╔═╡ afef6abf-42aa-4db8-8e55-774f387b2a58
@@ -89,7 +89,7 @@ This is reverse Michaelis Menten (MM) kinetics with affinity $k_{mS}$:
 k_{mS} &= s_B k_{S E_S} \left( 1 + \frac{M}{k_{SM}} \right) \\
 \end{aligned}
 ```
- $M$ is not expected to change during simulation. Hence, if temperatue sensitivity of the different $k_{S.}$ terms is similar, they can be replaced by a single parameter.  
+ $M$ is not expected to change during simulation. Hence, if temperature sensitivity of the different $k_{S.}$ terms is similar, they can be replaced by a single parameter.  
 """
 
 # ╔═╡ 55837e0a-9485-489c-8498-a2567233acd1

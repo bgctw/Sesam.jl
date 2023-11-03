@@ -19,7 +19,7 @@ function sesam3P(; name, δ = 40.0, max_w = 12, sN = sesam3N(; name = :sN, δ, m
         # need to be specified by coupled system:
         β_Pi(t), i_IP(t),
         u_PlantPmax(t), k_PlantP(t),
-        s_EP(t), pL_sEP(t), # synthesis of E_LP adn E_RP enzymes by plants
+        s_EP(t), pL_sEP(t), # synthesis of E_LP and E_RP enzymes by plants
         SOP(t), β_PSOM(t), β_NPSOM(t), β_NPB(t), β_NPi(t), β_NPL(t), β_NPR(t),
         lim_P(t), ω_P(t), ν_TP(t),
         dα_P(t), w_P(t)
@@ -116,12 +116,12 @@ function get_dα_eq_sesam3CNP(sP)
         return_R ~ dec_R * ω_R,
         # return of enzymes produced in addition to that of plants
         # only proportion of the biomineralization flux ends up in microbes: part it taken up by plant
-        # TODO dec_LP_P is already in P units, no need to devide by β_P
+        # TODO dec_LP_P is already in P units, no need to divide by β_P
         #return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * p_uPmic * w_P, 
         return_P ~ (dec_LP_P + dec_RP_P - dec_PPlant) * ω_P,
         revenue_L ~ return_L / (α_L * syn_Enz_w),
         revenue_R ~ return_R / (α_R * syn_Enz_w),
-        # avoid deviding by zero. Checking > 0 fails with Derivative need to check > small_number
+        # avoid dividing by zero. Checking > 0 fails with Derivative need to check > small_number
         revenue_P ~ IfElse.ifelse(α_P * syn_Enz_w > 1e-16,
             return_P / (α_P * syn_Enz_w),
             0.0),
@@ -129,7 +129,7 @@ function get_dα_eq_sesam3CNP(sP)
         α_LT ~ revenue_L / revenue_sum,
         α_RT ~ revenue_R / revenue_sum,
         α_PT ~ revenue_P / revenue_sum,
-        # auxilary for plotting
+        # auxiliary for plotting
         # invest_Ln ~ invest_L/(invest_L + invest_R),
         # invest_Rn ~ invest_R/(invest_L + invest_R),
         # return_Ln ~ return_L/(return_L + return_R),
@@ -178,7 +178,7 @@ end
 """  
     compute_mean_du3(du1, α1, du2, α2, du3, α3; sum_α_others=0)
 
-Compute mean across derivates, du, with checking exluding enzymes for 2 enzymes
+Compute mean across derivates, du, with checking excluding enzymes for 2 enzymes
 Given derivates du1, du2, du3 and allocations α1, α2, α3.
 (Wutzler22 Appendix D1)
 

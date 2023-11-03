@@ -14,7 +14,7 @@ function plant_face_fluct(; name, t1 = 0.0, t2 = 100.0, fac_inc = 1.2,
     @parameters k_Lagr=k_Lagr share_autumn=share_autumn
     # in the fluctuation analysis the integrated
     # model gives slightly higher litter input
-    # ad-hoc correct for providiing slighly lower 
+    # ad-hoc correct for providiing slightly lower 
     # amount in autumn
 
     # Distribution of litterfall within year (between 0 and 1)

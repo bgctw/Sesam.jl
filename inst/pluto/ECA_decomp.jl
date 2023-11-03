@@ -27,12 +27,12 @@ md"""
 # ECA kinetics leads to classic MM kinetics for Sesam substrate pools
 **Thomas Wutzler 2022**
 
-**deprecated**: when regarding enzyme binding sites per mass (Tang 2017) the assuption $E_S \ll S$ does not hold anymore.
+**deprecated**: when regarding enzyme binding sites per mass (Tang 2017) the assumption $E_S \ll S$ does not hold anymore.
 """
 
 # ╔═╡ 5526b178-148e-4d28-9cc5-7b04768ea2f0
 md"""
-The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) desribes limitation of rates for multiple competing consumers for multiple substrates.
+The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) describes limitation of rates for multiple competing consumers for multiple substrates.
 
 For a single substrate depolymerized, $S$,  by an enzyme $E_S$,  and also in sorption 
 equilibrium with the free mineral capacity $M$, the ECA formulation for decomposition $d_S$ of $S$ by enzyme $E_S$ is as follows.
@@ -63,7 +63,7 @@ This is classic Michaelis Menten (MM) kinetics with affinity $k_{mS}$:
 k_{mS} &= k_{S E_S} \left( 1 + \frac{M}{k_{SM}} \right) \\
 \end{aligned}
 ```
- $M$ is not expected to change during simulation. Hence, if temperatue sensitivity of the different $k_{S.}$ terms is similar, they can be replaced by a single parameter.  
+ $M$ is not expected to change during simulation. Hence, if temperature sensitivity of the different $k_{S.}$ terms is similar, they can be replaced by a single parameter.  
 """
 
 # ╔═╡ 55837e0a-9485-489c-8498-a2567233acd1
@@ -74,8 +74,8 @@ With $\frac{M}{k_{SM}} \gg 1$ (true for mineral soils because of very high affin
 k_{mS} &\approx k_{S E_S} \frac{M}{k_{SM}} \\
 \end{aligned}
 ```
- $k_{S E_S}$ is of magnitude of nonprotected $S$, and $k_{SM}$ is of magnitude of $M$ and therefore also $k_{mS}$ is of the mangitude of $S$. 
-Hence, decomposition decreases slighly sublinear with increasing $M$, 
+ $k_{S E_S}$ is of magnitude of nonprotected $S$, and $k_{SM}$ is of magnitude of $M$ and therefore also $k_{mS}$ is of the magnitude of $S$. 
+Hence, decomposition decreases slightly sublinear with increasing $M$, 
 """
 
 # ╔═╡ 6f786282-def1-49fc-86f8-198b8fe235c5

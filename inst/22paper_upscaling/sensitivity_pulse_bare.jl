@@ -274,7 +274,7 @@ recode!(dfp.target,
     "r" => "ΔCUE")
 levels!(dfp.target, ["ΔCUE"])    # index
 levels!(dfp.index, ["total", "first_order"]);
-# sort by decreasing effect withing index/target
+# sort by decreasing effect within index/target
 sort!(dfp, [:index, :target, :value])
 # relevel par so that index is preserved in plot
 levels!(dfp.par,
