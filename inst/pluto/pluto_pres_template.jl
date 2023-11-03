@@ -65,7 +65,7 @@ md"""
 md"""
 ## Example animation
 
-Each grid point can **move** freely **along verical axis**:
+Each grid point can **move** freely **along vertical axis**:
 """
 
 # ╔═╡ 4c75d21e-511e-11eb-0dcc-c789e4668f3f

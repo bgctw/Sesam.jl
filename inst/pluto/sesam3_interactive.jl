@@ -178,7 +178,7 @@ end;
 # ╔═╡ 8247cdc0-8b23-4b1f-a4ee-6e6ac09a2232
 begin
     cols = (:par, :dType, :mode, :upper)
-    parmsModeUpperRows = [
+    paramsModeUpperRows = [
         (s.β_NB, LogNormal, 8.0, 16.0),
         (s.β_NEnz, LogNormal, 3.0, 3.5),
         (s.k_mN_L, LogNormal, 60 * 0.05, 120 * 2.0),
@@ -196,7 +196,7 @@ begin
         (s.ν_N, LogNormal, 0.9, 0.99),
         #(:kIPlant, LogNormal, 10.57 , 20)
     ]
-    df_dist = rename!(DataFrame(columntable(parmsModeUpperRows)), collect(cols))
+    df_dist = rename!(DataFrame(columntable(paramsModeUpperRows)), collect(cols))
 end;
 
 # ╔═╡ ad1b457f-f98e-4556-83f2-477e2b857a07

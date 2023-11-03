@@ -60,7 +60,7 @@ pP = Dict(
     #s.k_RP => pC[s.k_R], # TODO
     s.i_BP => pN[s.i_BN],       ##<< potential immobilization flux rate 
     s.β_PEnz => 50.0,     # TODO Sterner02: Protein (Fig. 2.2.), high N investment (low P) need 
-    s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinary and energy compounds
+    s.β_PB => 40.0, # Sterner02: low P in microbial cell walls, more in genetic machinery and energy compounds
     s.ρ_PBtvr => 0.0,    # no phosphorus resorption
     s.l_P => 0.01,      # almost no leaching       
     s.ν_P => 0.9,     # microbial P use efficiency accounting for apparent 
@@ -176,14 +176,14 @@ end;
     # all three
     @test CP.compute_mean_du3(0.7, 1 / 3, 0.4, 1 / 3, 0.4, 1 / 3) == 0.5
     # only du1 and du2
-    # mean is slighly less than 0.5 to account for decreasing third
+    # mean is slightly less than 0.5 to account for decreasing third
     @test 0.4 < CP.compute_mean_du3(0.6, 0.45, 0.4, 0.45, 0.01, 0.1) < 0.5
     # only du1 and du3
     @test 0.4 < CP.compute_mean_du3(0.6, 0.45, 0.01, 0.1, 0.4, 0.45) < 0.5
     # only du3 and du3
     @test 0.4 < CP.compute_mean_du3(0.01, 0.1, 0.6, 0.45, 0.4, 0.45) < 0.5
     # only du1
-    # slighly less than 0.7 to account for decreasing others
+    # slightly less than 0.7 to account for decreasing others
     @test 0.5 < CP.compute_mean_du3(0.7, 0.9, 0.1, 0.1, 0.1, 0.1) < 0.7
     # only du2
     @test 0.5 < CP.compute_mean_du3(0.1, 0.1, 0.7, 0.9, 0.1, 0.1) < 0.7

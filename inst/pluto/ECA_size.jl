@@ -33,7 +33,7 @@ md"""
 
 # ╔═╡ 5526b178-148e-4d28-9cc5-7b04768ea2f0
 md"""
-The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) desribes limitation of rates for multiple competing consumers for multiple substrates.
+The Equilibrium Chemistry approximation (ECA) (Tang & Railey 2013) describes limitation of rates for multiple competing consumers for multiple substrates.
 
 For a single substrate depolymerized, $S$,  by an enzyme $E_S$,  and also in sorption 
 of S equilibrium with the free mineral capacity $M$, the ECA formulation for decomposition $d_S$ of $S$ by enzyme $E_S$ is as follows.
@@ -45,7 +45,7 @@ d_S &= v_{max} \frac{z_S S \, z_E E_S}{k_{S E_S} \left( 1 + \frac{z_S S}{k_{S E_
 ```
 where the coefficients $k_{SC}$ describe the affinity of substrate, $S$ to consumer $C \in \{E_S, M\}$. Also enzymes can bind to $M$ instead to $S$.
 
-Above, enzymes are viewed as consumers that compete with minerals for substrate. Alternatively, substrates can be viewed as consumers that comptete with minerals for enzymes, resulting in replacing affinity $k_{SM}$ by affinity $k_{EM}$. The ECA assumes that consumers do not interact directly, and althought this is not ECA, for symmetry reasons we include both competition terms in the formula.
+Above, enzymes are viewed as consumers that compete with minerals for substrate. Alternatively, substrates can be viewed as consumers that comptete with minerals for enzymes, resulting in replacing affinity $k_{SM}$ by affinity $k_{EM}$. The ECA assumes that consumers do not interact directly, and although this is not ECA, for symmetry reasons we include both competition terms in the formula.
 
 ```math
 \begin{aligned}
@@ -66,7 +66,7 @@ We follow Tang & Riley (2017) an assume both enzymes and substrate particles to 
 $z_S = \frac{1}{p_s \rho_S} \frac{3}{R_S} \frac{\sigma_{ES}}{\pi R_E^2}$
 
 converts mass -> volume -> surface area -> binding sites.
-Density, $\rho_S$, is used to convert to volume, $p_s$ is the fraction of volume filled with soil, i.e. the fraction without stones. Area to volume ratio for a ball is $\frac{A}{V} = \frac{4 \pi R_S^2}{4/3 \pi R_S^3} = \frac{3}{R_S}$ and surface area of each ball is devided by the circle base area of an enzyme with corresponding radius $R_E$. $\sigma_{ES} \le 1$ decreases the maximum density of binding sites on the particle surface.
+Density, $\rho_S$, is used to convert to volume, $p_s$ is the fraction of volume filled with soil, i.e. the fraction without stones. Area to volume ratio for a ball is $\frac{A}{V} = \frac{4 \pi R_S^2}{4/3 \pi R_S^3} = \frac{3}{R_S}$ and surface area of each ball is divided by the circle base area of an enzyme with corresponding radius $R_E$. $\sigma_{ES} \le 1$ decreases the maximum density of binding sites on the particle surface.
 """
 
 # ╔═╡ 29885b7a-0767-4cec-ad58-bce45479f01c

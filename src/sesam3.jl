@@ -146,7 +146,7 @@ function get_dα_eq_sesam3CN(sN)
         α_LT ~ revenue_L / revenue_sum,
         α_RT ~ revenue_R / revenue_sum,
         dα_R ~ (α_RT - α_R) * (τ + abs(syn_B) / B),
-        # auxilary for plotting
+        # auxiliary for plotting
         # invest_Ln ~ invest_L/(invest_L + invest_R),
         # invest_Rn ~ invest_R/(invest_L + invest_R),
         # return_Ln ~ return_L/(return_L + return_R),
@@ -181,7 +181,7 @@ end
 """  
     compute_mean_du2(du1, α1, du2, α2; sum_α_others=0)
 
-Compute mean across derivates, du, with checking exluding enzymes for 2 enzymes
+Compute mean across derivates, du, with checking excluding enzymes for 2 enzymes
 Given derivates du1, du2 and allocations α1 and α2.
 (Wutzler22 Appendix D1)
 

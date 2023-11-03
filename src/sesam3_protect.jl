@@ -43,7 +43,7 @@ function sesam3C_protect(; name, k_N = 60.0, δ = 40.0, max_w = 12)
         dec_LPot ~ k_L * L,
         dec_L ~ dec_LPot * (α_L * syn_Enz) / (k_mN_L + α_L * syn_Enz),
         # the next two lines are different from sesam3
-        # note the new observable Ra, k_Rtot and paramters Q_max, K_eqR
+        # note the new observable Ra, k_Rtot and parameters Q_max, K_eqR
         dec_RPot ~ k_R * Ra,
         Ra ~ compute_accessible_langmuir(R, Q_max, K_eqR),
         k_Rtot ~ k_R * Ra / R,
