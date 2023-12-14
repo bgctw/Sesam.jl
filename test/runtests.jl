@@ -1,54 +1,25 @@
-using Sesam
-using ModelingToolkit, DifferentialEquations
-using Test
-using DistributionFits
-using MTKHelpers
-using Sesam: Sesam as CP
-using ComponentArrays
+using Test, SafeTestsets
+const GROUP = get(ENV, "GROUP", "All") # defined in in CI.yml
+@show GROUP
 
-@testset "sesam3_protect" begin
-    #include("test/test_sesam3_protect.jl");        
-    include("test_sesam3_protect.jl")
-end;
+@time begin
+    if GROUP == "All" || GROUP == "Basic"
+        #@safetestset "Tests" include("test/test_sesam3_protect.jl")
+        @time @safetestset "sesam3_protect" include("test_sesam3_protect.jl")
+        #@safetestset "Tests" include("test/test_sesam3.jl")
+        @time @safetestset "sesam3" include("test_sesam3.jl")
+        #@safetestset "Tests" include("test/test_sesam3_regressionR.jl")
+        @time @safetestset "sesam3 regression to R" include("test_sesam3_regressionR.jl")
+        #@safetestset "Tests" include("test/test_sesam3_revMM.jl")
+        @time @safetestset "sesam3_revMM" include("test_sesam3_revMM.jl")
+        #@safetestset "Tests" include("test/test_sesam3CN.jl")
+        @time @safetestset "sesam3_CN" include("test_sesam3CN.jl")
+        #@safetestset "Tests" include("test/test_seam3.jl")
+        @time @safetestset "seam3" include("test_seam3.jl")
+        #@safetestset "Tests" include("test/test_plant_face.jl")
+        @time @safetestset "plant_face" include("test_plant_face.jl")
+        #@safetestset "Tests" include("test/test_plant_face_fluct.jl")
+        @time @safetestset "plant_face_fluct" include("test_plant_face_fluct.jl")
+    end
+end
 
-@testset "sesam3" begin
-    #include("test/test_sesam3.jl");        
-    include("test_sesam3.jl")
-end;
-
-@testset "sesam3 regression to R" begin
-    #include("test/test_sesam3_regressionR.jl")        
-    include("test_sesam3_regressionR.jl")
-end;
-
-@testset "sesam3_revMM" begin
-    #include("test/test_sesam3_revMM.jl")        
-    include("test_sesam3_revMM.jl")
-end;
-
-@testset "sesam3_CN" begin
-    #include("test/test_sesam3CN.jl");        
-    include("test_sesam3CN.jl")
-end;
-
-@testset "seam3" begin
-    #include("test/test_seam3.jl");        
-    include("test_seam3.jl")
-end;
-
-@testset "plant_face" begin
-    #include("test/test_plant_face.jl");        
-    include("test_plant_face.jl")
-end;
-
-@testset "plant_face_fluct" begin
-    include("test_plant_face_fluct.jl")
-end;
-
-@testset "util" begin
-    include("test_util.jl")
-end;
-
-# @testset "parupdater" begin
-#     include("test_parupdater.jl")        
-# end;

@@ -1,3 +1,6 @@
+using Sesam, Test
+using ModelingToolkit, OrdinaryDiffEq
+
 @parameters t
 D = Differential(t)
 @variables x(t) # integrator
@@ -36,7 +39,7 @@ u_plf = Dict(plf.Lagr => 0.2,
 #tspan = (-500.0, 120.0)
 tspan = (-5.0, 5.0)
 prob = ODEProblem(plf_rep, u_plf, tspan, p_plf)
-#sol = solve(prob, saveat = 0:1:tspan[2])
+#sol = solve(prob, Tsit5(); saveat = 0:1:tspan[2])
 #solver = CompositeAlgorithm((Tsit5(),Vern7()), (integrator) -> (Int(integrator.dt<0.001) + 1))
 solver = Vern7() # implicit method
 # solver = AutoVern9(Rodas4())
@@ -118,7 +121,8 @@ i_inspect_dlit = () -> begin
     d_lit_agr = autumn_start +
                 (autumn_end - autumn_start) *
         #     LogitNormal(0,sqrt(2)), 
-        fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+        # fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+        LogitNormal{Float64}(μ=-0.7545014913579478, σ=0.48165436006864837)
         #    Uniform()
     xs = 0.6:0.005:1
     Plots.plot(xs .* 12 .+ 1, pdf.(d_lit_agr, xs))

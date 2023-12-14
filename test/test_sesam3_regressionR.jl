@@ -1,6 +1,8 @@
 using Sesam
-import Sesam as CP
-using ModelingToolkit, DifferentialEquations
+using Sesam: Sesam as CP
+using ModelingToolkit, OrdinaryDiffEq
+using ComponentArrays
+
 
 # resembling parameters and states in Sesam.R test_modSesam3P.R
 
@@ -221,7 +223,7 @@ tmpf = () -> begin
 
     # test julia solution in R
     popt = ComponentVector(s₊B = 1)
-    pset = ProblemParSetter(sp, popt)
-    #pset_r = ProblemParSetter(spLRP_r, popt)
+    pset = ODEProblemParSetter(sp, popt)
+    #pset_r = ODEProblemParSetter(spLRP_r, popt)
     label_state(pset, sol[end])
 end

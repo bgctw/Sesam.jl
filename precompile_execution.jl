@@ -1,7 +1,7 @@
 using Test
 #using LaTeXStrings
 using Sesam
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
 using Test
 using DistributionFits
 using MTKHelpers

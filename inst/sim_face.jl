@@ -65,8 +65,8 @@ u0 = merge(u0C, u0N)
 
 tspan_sim = (-500, 120.0)
 prob = ODEProblem(sp, u0, tspan_sim, p)
-#sol = solve(prob, saveat=vcat([450],500:0.5:600))
-sol = solve(prob)
+#sol = solve(prob, Tsit5(), saveat=vcat([450],500:0.5:600))
+sol = solve(prob, Tsit5())
 
 using Plots
 tspan = first(sol.t) .+ (0, 5)

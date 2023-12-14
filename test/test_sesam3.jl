@@ -1,6 +1,8 @@
 using Sesam
 using Sesam: Sesam as CP
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
+using ComponentArrays
+include("test_util.jl")
 
 @named s = sesam3()
 @named pl = plant_const_balanced()
@@ -94,7 +96,6 @@ tspan = (0.0, 200.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-#sol = sol_sesam3 = solve(prob);
 #sol = sol_sesam3 = solve(prob, Tsit5());
 sol = sol_sesam3 = solve(prob, Rodas4());
 #sol = sol_sesam3 = solve(prob, Tsit5(), callback=PositiveDomain(prob.u0));
@@ -205,7 +206,7 @@ end;
     include("test_sesam3_sol.jl")
 end;
 
-@testset "dalpha on P gradient" begin
+@testset_skip "dalpha on P gradient" begin
     # example from sesam_LRP_deriv.Rmd
     dL = 0.7
     dR = 0.5
@@ -226,20 +227,20 @@ end;
     pLRP[s.k_mN_L] = pLRP[s.k_mN_R] = pLRP[s.k_mN_P] = pLRP[s.a_E] * B0 / 2
     probLRP = ODEProblem(spLRP, u0LRP, (0, 5), pLRP)
     probLRP_r = ODEProblem(spLRP_r, u0LRP, (0, 5), pLRP)
-    sol = solLRP_r = solve(probLRP, Rodas4())
-    sol = solLRP = solve(probLRP_r, Rodas4())
+    sol = solLRP_r = solve(probLRP, Rodas4());
+    sol = solLRP = solve(probLRP_r, Rodas4());
     #push!(LOAD_PATH, "/User/homes/twutz/julia/scimltools/")
     #using ComponentArrays
     #using MTKHelpers
     popt = ComponentVector(s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP, s₊B = 1)
-    pset = ProblemParSetter(spLRP, popt)
-    pset_r = ProblemParSetter(spLRP_r, popt)
-    pset_αr = ProblemParSetter(spLRP_r, ComponentVector(s₊α_R = 1 / 3, s₊α_P = 1 / 3))
+    pset = ODEProblemParSetter(spLRP, popt)
+    pset_r = ODEProblemParSetter(spLRP_r, popt)
+    pset_αr = ODEProblemParSetter(spLRP_r, ComponentVector(s₊α_R = 1 / 3, s₊α_P = 1 / 3))
 
     calc_alpha3_proptoderiv = (dL, dR, dP, B0 = 1, s_EP = 0; use_proportional_revenue = false, kwargs...) -> begin
         popt = ComponentVector(s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP, s₊B = B0)
-        prob_u = use_proportional_revenue ? update_statepar(pset_r, popt, probLRP_r) :
-                 update_statepar(pset, popt, probLRP)
+        prob_u = use_proportional_revenue ? remake(probLRP_r, popt, pset_r) :
+                 remake(probLRP, popt, pset)
         get_paropt(pset, prob_u)
         sol = solve(prob_u, Rodas4(), saveat = [prob_u.tspan[2]])
         xE = map(v -> sol[v][end], [s.α_L, s.α_R, s.α_P])

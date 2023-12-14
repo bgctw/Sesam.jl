@@ -1,3 +1,6 @@
+using Sesam, Test
+using ModelingToolkit, OrdinaryDiffEq
+
 @parameters t
 D = Differential(t)
 
@@ -25,8 +28,8 @@ p_plf = Dict(plf.i_L0 => 400.0,         # g/m2 input per year (half NPP)
     plf.k_PlantP0 => Inf)
 tspan = (0, 120)
 prob = ODEProblem(plf_rep, [0.0], tspan, p_plf)
-#sol = solve(prob, saveat = 0:1:tspan[2])
-sol = solve(prob, saveat = 0:1:tspan[2], verbose = false) # suppress warnings
+#sol = solve(prob, Tsit5(); saveat = 0:1:tspan[2])
+sol = solve(prob, Tsit5(), saveat = 0:1:tspan[2], verbose = false) # suppress warnings
 
 @testset "increased input" begin
     is_face_period = 20 .<= sol.t .< 20 + 50
