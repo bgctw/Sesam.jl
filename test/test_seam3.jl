@@ -1,3 +1,6 @@
+using Sesam, Test
+using ModelingToolkit, OrdinaryDiffEq
+
 @named s = seam3()
 @named pl = plant_const()
 
@@ -63,7 +66,7 @@ tspan = (0.0, 100.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_seam3 = solve(prob)
+sol = sol_seam3 = solve(prob, Tsit5())
 
 i_tmp = () -> begin
     #using Plots

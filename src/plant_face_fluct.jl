@@ -18,10 +18,11 @@ function plant_face_fluct(; name, t1 = 0.0, t2 = 100.0, fac_inc = 1.2,
     # amount in autumn
 
     # Distribution of litterfall within year (between 0 and 1)
-    #d_lit_agr = LocationScale(autumn_start, autumn_end - autumn_start, fit_mode_flat(LogitNormal, 0.3; peakedness = 3))
-    d_lit_agr = autumn_start +
-                (autumn_end - autumn_start) *
-                fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+    # avoid dependencies to DistributionFits and Optim - hardcode    
+    #dist_flat = fit_mode_flat(LogitNormal, 0.3; peakedness = 3)
+    dist_flat = LogitNormal{Float64}(-0.7545014913579478, 0.48165436006864837)
+    d_lit_agr = autumn_start + (autumn_end - autumn_start) * dist_flat
+                
     @variables (begin
         i_L(t), β_Ni(t), i_IN(t),
         i_L_anomaly(t), i_L_annual(t), β_Ni_annual(t),

@@ -1,5 +1,5 @@
 using Sesam
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
 
 # see test_sesam for constructing and solving the system
 

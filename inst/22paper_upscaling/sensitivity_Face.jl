@@ -3,7 +3,7 @@
 
 using Sesam
 #push!(LOAD_PATH, expanduser("~/julia/scimltools/")) # access local package repo
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
 using DataFrames, Tables
 using Distributions
 using Chain
@@ -80,12 +80,12 @@ tspan_sim = (-tspinup, tface) # simulate 500 yrs spinup, increase at yr 20
 saveat = [0.0, tface] # save at start of increase and tface years later
 prob0 = ODEProblem(sp, u0, tspan_sim, p) #2ms
 #prob0 = ODEProblem(sp, u0, tspan_sim, p; jac=true) # actually slower: 4ms
-sol0t = sol = solve(prob0)
+sol0t = sol = solve(prob0, Tsit5())
 #plot(sol0t, vars=[s.L + s.R], tspan=(-20,tface))
-sol0 = solve(prob0; saveat)
+sol0 = solve(prob0, Tsit5(); saveat)
 
 # using BenchmarkTools
-# @btime sol0 = solve(prob0; saveat)
+# @btime sol0 = solve(prob0, Tsit5(); saveat)
 
 # sensitivity measure is the change in SOM stocks after 50 yrs increased input
 # compared to equilibrium
@@ -137,12 +137,12 @@ names_opt_all = df_dist.par
 names_omit = []
 names_opt = setdiff(names_opt_all, names_omit)
 #upd! = SystemParUpdater(collect(names_opt), sp)
-pset = ProblemParSetter(sp, CA.Axis(symbol.(names_opt)))
+pset = ODEProblemParSetter(sp, CA.Axis(symbol.(names_opt)))
 popt0 = get_paropt_labeled(pset, prob0)
 
 function sim_face(popt)
-    prob = update_statepar(pset, popt, prob0)
-    solve(prob; saveat)
+    prob = remake(prob0, pset, popt)
+    solve(prob, Tsit5(); saveat)
 end
 sol_p = sim_face(popt0)
 som_change(sol_p) # SOM change different with updated parameters

@@ -2,7 +2,7 @@
 
 using Sesam
 #push!(LOAD_PATH, expanduser("~/julia/scimltools/")) # access local package repo
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
 using DataFrames, Tables
 using Distributions
 using Chain
@@ -75,8 +75,8 @@ get_litter_input_fake_system = () -> begin
     #Plots.plot(sol_pl, tspan=(-1.5,-1), vars=[pl.i_L, pl.i_L_annual, pl.i_Lagr])
     #
     # repeat with annually averaged litter input - here without fake
-    # ps_plse = ProblemParSetter(plse, (pl.share_autumn, pl.Lagr))
-    # prob_pl_ann = update_statepar(ps_plse, (0.0, 0.0), prob_pl);
+    # ps_plse = ODEProblemParSetter(plse, (pl.share_autumn, pl.Lagr))
+    # prob_pl_ann = remake(prob_pl, (0.0, 0.0), ps_plse);
     # sol_pl_ann = solve(prob_pl_ann, Vern7())
     # plf_ann = plant_face_fluct_fake(;name=nameof(pl),sys=pl, sol=sol_pl_ann);
 
@@ -143,10 +143,10 @@ sim_u0steady = () -> begin
     @named ssp0 = plant_sesam_system(se, plf_ann)  # include Enzyemes in u0, use se
     #@named ssp0 = plant_sesam_system(ss,plf_ann)
     prob0 = ODEProblem(ssp0, u00, tspan_spinup, p)
-    # pss_tmp = ProblemParSetter(ssp0, (pl.share_autumn, pl.Lagr))
-    # prob0s = update_statepar(pss_tmp, (0.0, 0.0), prob0)
+    # pss_tmp = ODEProblemParSetter(ssp0, (pl.share_autumn, pl.Lagr))
+    # prob0s = remake(prob0, (0.0, 0.0), pss_tmp)
     #prob0s = deepcopy(prob0)
-    sol = sol_sesam3s0 = solve(prob0)
+    sol = sol_sesam3s0 = solve(prob0, Tsit5())
     #plot(sol, vars=[s.R, s.L])
     #plot(sol, tspan = (-5,0), vars=[s.R]) # only slight increase still
     k = first(states(ssp0))
@@ -182,12 +182,12 @@ solver = Vern7() # implicit method
 #solver = Vern9() # implicit method
 #solver = Rodas5()
 @named sep = plant_sesam_system(se, plf)
-ps_se = ProblemParSetter(sep, CA.Axis(symbols_state(sep)))
+ps_se = ODEProblemParSetter(sep, CA.Axis(symbols_state(sep)))
 probe = ODEProblem(sep, u0, tspan, p)
 @named ssp = plant_sesam_system(ss, plf)
 probs = ODEProblem(ssp, u0, tspan, p)
-#ps_ss = ProblemParSetter(ssp, states(ssp))
-ps_ss = ProblemParSetter(ssp, CA.Axis(symbols_state(ssp)))
+#ps_ss = ODEProblemParSetter(ssp, states(ssp))
+ps_ss = ODEProblemParSetter(ssp, CA.Axis(symbols_state(ssp)))
 
 uend_tmp = copy(probe.u0)
 check_unstable_e = (dt, u, p, t) -> begin
@@ -277,10 +277,10 @@ end
 
 # next parameterize plant model for non-fluctuating litter input
 # this is achieved by setting the share of autumn input to zero
-# pse_s = ProblemParSetter(sep, (pl.share_autumn, pl.Lagr))
-# probe_ann = update_statepar(pse_s, (0.0, 0.0), probe);
-# pss_s = ProblemParSetter(ssp, (pl.share_autumn, pl.Lagr))
-# probs_ann = update_statepar(pss_s, (0.0, 0.0), probs);
+# pse_s = ODEProblemParSetter(sep, (pl.share_autumn, pl.Lagr))
+# probe_ann = remake(probe, (0.0, 0.0), pse_s);
+# pss_s = ODEProblemParSetter(ssp, (pl.share_autumn, pl.Lagr))
+# probs_ann = remake(probs, (0.0, 0.0), pss_s);
 
 @named sep_ann = plant_sesam_system(se, plf_ann)
 probe_ann = ODEProblem(sep_ann, u0, tspan, p)

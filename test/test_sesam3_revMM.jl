@@ -1,3 +1,6 @@
+using Sesam, Test
+using ModelingToolkit, OrdinaryDiffEq
+
 @named s = sesam3_revMM()
 @named pl = plant_const()
 
@@ -68,7 +71,7 @@ tspan = (0.0, 100.0)
 #prob = ODEProblem(sp, remove_units(u0), tspan, remove_units(p))
 prob = ODEProblem(sp, u0, tspan, p)
 #prob = ODEProblem(sp,u0, tspan, p, jac=true)
-sol = sol_sesam3 = solve(prob);
+sol = sol_sesam3 = solve(prob, Tsit5());
 
 i_plot = () -> begin
     #using Plots

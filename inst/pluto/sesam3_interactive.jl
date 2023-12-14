@@ -47,7 +47,7 @@ end;
 using Suppressor
 
 # ╔═╡ 01be1fe6-39f5-4ecb-9d9e-3c5bcf39c936
-using ModelingToolkit, DifferentialEquations, DataFrames, Tables, Distributions, Chain
+using ModelingToolkit, OrdinaryDiffEq, DataFrames, Tables, Distributions, Chain
 
 # ╔═╡ f1a94d8f-927e-40f3-9af6-667890a6e733
 using DistributionFits
@@ -278,17 +278,17 @@ end
 @bind popt parameter_input(string.(pars_mod))
 
 # ╔═╡ 66dae3d2-9ba5-491b-a3cd-77fcfbb0ab78
-ps = ProblemParSetter(sp, propertynames(popt))
+ps = ODEProblemParSetter(sp, propertynames(popt))
 
 # ╔═╡ a8b21bd2-3914-46b2-8b11-f9279f88e732
 begin
     tspan_sim = (-tspinup, tface) # simulate 500 yrs spinup, increase at yr 20
     prob0 = prob = ODEProblem(sp, u0, tspan_sim, p) #2ms
     if length(popt) != 0
-        prob = update_statepar(ps, values(popt), prob0)
+        prob = remake(prob0, ps, values(popt))
         p_upd = label_par(ps, prob.p)
     end
-    sol0t = sol = solve(prob)
+    sol0t = sol = solve(prob, Tsit5())
 end;
 
 # ╔═╡ 2ddb2869-4917-4973-8b3f-51dce7eba302

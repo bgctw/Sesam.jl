@@ -4,7 +4,7 @@
 #using Pkg; Pkg.activate("inst/22paper_upscaling")
 using Sesam
 #push!(LOAD_PATH, expanduser("~/julia/scimltools/")) # access local package repo
-using ModelingToolkit, DifferentialEquations
+using ModelingToolkit, OrdinaryDiffEq
 using DataFrames, Tables
 using Distributions
 using Chain
@@ -116,12 +116,12 @@ transform!(df_dist, :par => ByRow(symbol) => :par)
 names_omit = [:s₊l_N]
 names_opt = setdiff(df_dist.par, names_omit)
 #upd! = SystemParUpdater(collect(names_opt), sp)
-pset = ProblemParSetter(sp, CA.Axis(names_opt))
+pset = ODEProblemParSetter(sp, CA.Axis(names_opt))
 popt0 = get_paropt_labeled(pset, prob0)
-prob = update_statepar(pset, popt0, prob0)
+prob = remake(prob0, popt0, pset)
 
 u00 = get_u0(50, u0C, convert_symbol(p))
-pset_state = ProblemParSetter(sp, CA.Axis(symbol.(keys(u00))))
+pset_state = ODEProblemParSetter(sp, CA.Axis(symbol.(keys(u00))))
 
 cb_nonnegative_biomass = PositiveDomain(copy(prob0.u0))
 
@@ -142,11 +142,11 @@ function simExp(popt; prob0 = prob0, cn0 = cn0)
     #saveat=[0.0,tend] # save at start of increase and tface years later
     #2ms
     #prob0 = ODEProblem(sp, u0, tspan_sim, p; jac=true) # actually slower: 4ms
-    prob = update_statepar(pset, popt, prob0)
+    prob = remake(prob0, popt, pset)
     popt_labeled = label_par(pset, prob.p)
     # also update u0 for given p 
     u0o_dict = get_u0(cn0, u0C, popt_labeled)
-    prob = update_statepar(pset_state, collect(values(u0o_dict)), prob)
+    prob = remake(prob, collect(values(u0o_dict)), pset_state)
     #solve(prob, Rodas5(), callback = cb_nonnegative_biomass);
     solve(prob,
         Rodas5(),
@@ -193,7 +193,7 @@ tmp_fig4_pulse50_90 = () -> begin
         plot(sol, idxs = [s.lim_C, s.lim_N])
         plot(sol, idxs = [s.syn_B / s.u_C])
     end
-    sol0 = solve(prob0; saveat)
+    sol0 = solve(prob0, Tsit5(); saveat)
 end
 
 tmp_experiment_simperiod = () -> begin
