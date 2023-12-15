@@ -3,6 +3,9 @@ using ModelingToolkit: AbstractSystem, get_eqs, get_states, get_ps, get_observed
 
 # moved override to MTKHelpers.override_system
 
+"""
+System where d_L, d_R, and d_P are fixed to given parameters, B held constant (dB/dt = 0)
+"""
 function sesam_const_dLRP(dL0, dR0, dP0; name, kwargs...)
     s = sesam3(; name = :s, kwargs...)
     @unpack d_L, d_R, d_P, B = s

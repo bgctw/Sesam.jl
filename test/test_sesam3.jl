@@ -1,8 +1,12 @@
-using Sesam
+using Sesam, Test
 using Sesam: Sesam as CP
 using ModelingToolkit, OrdinaryDiffEq
 using ComponentArrays
-include("test_util.jl")
+using MTKHelpers
+test_path = splitpath(pwd())[end] == "test" ? "." : "test"
+@show test_path
+
+include(joinpath(test_path,"testset_utils.jl"))
 
 @named s = sesam3()
 @named pl = plant_const_balanced()
@@ -194,7 +198,7 @@ end;
 
 @testset "no P recycled" begin
     #include("test/test_sesam3_sol.jl")
-    include("test_sesam3_sol.jl")
+    include(joinpath(test_path,"test_sesam3_sol.jl"))
 end;
 
 @testset "P recycled" begin
@@ -202,11 +206,10 @@ end;
     p2[s.ρ_PBtvr] = 0.1  # 10% N recycled during turnover
     prob2 = ODEProblem(sp, u0, tspan, p2)
     sol = sol2 = solve(prob2, Rodas4())
-    #include("test/test_sesam3_sol.jl")
-    include("test_sesam3_sol.jl")
+    include(joinpath(test_path,"test_sesam3_sol.jl"))
 end;
 
-@testset_skip "dalpha on P gradient" begin
+@testset "dalpha on P gradient" begin
     # example from sesam_LRP_deriv.Rmd
     dL = 0.7
     dR = 0.5
@@ -232,20 +235,23 @@ end;
     #push!(LOAD_PATH, "/User/homes/twutz/julia/scimltools/")
     #using ComponentArrays
     #using MTKHelpers
-    popt = ComponentVector(s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP, s₊B = 1)
+    popt = ComponentVector(state = (s₊B = 1,), par = (s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP))
     pset = ODEProblemParSetter(spLRP, popt)
     pset_r = ODEProblemParSetter(spLRP_r, popt)
-    pset_αr = ODEProblemParSetter(spLRP_r, ComponentVector(s₊α_R = 1 / 3, s₊α_P = 1 / 3))
+    #pset_αr = ODEProblemParSetter(spLRP_r, ComponentVector(state=ComponentVector(), par=(s₊α_R = 1 / 3, s₊α_P = 1 / 3)))
 
     calc_alpha3_proptoderiv = (dL, dR, dP, B0 = 1, s_EP = 0; use_proportional_revenue = false, kwargs...) -> begin
-        popt = ComponentVector(s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP, s₊B = B0)
-        prob_u = use_proportional_revenue ? remake(probLRP_r, popt, pset_r) :
+        popt = ComponentVector(state=(s₊B = B0,), par=(s₊d_L0 = dL, s₊d_R0 = dR, s₊d_P0 = dP))
+        prob_u = use_proportional_revenue ?
+                 remake(probLRP_r, popt, pset_r) :
                  remake(probLRP, popt, pset)
-        get_paropt(pset, prob_u)
+        get_paropt_labeled(pset, prob_u)
+        get_paropt_labeled(pset, probLRP)
         sol = solve(prob_u, Rodas4(), saveat = [prob_u.tspan[2]])
         xE = map(v -> sol[v][end], [s.α_L, s.α_R, s.α_P])
         xE
     end
+    # calc_alpha3_proptoderiv(dL, dR, 0)
     # regression to values of sesam_LRP_deriv.Rmd
     @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0)[1], 0.5839202, atol = 1e-5)
     @test isapprox(calc_alpha3_proptoderiv(dL, dR, 0)[3], 0.0, atol = 1e-5)
