@@ -4,6 +4,7 @@ const GROUP = get(ENV, "GROUP", "All") # defined in in CI.yml
 
 @time begin
     if GROUP == "All" || GROUP == "Basic"
+        #join_path(test_path, ...) does not work, because test_path is unknown in new module
         #@safetestset "Tests" include("test/test_sesam3_protect.jl")
         @time @safetestset "sesam3_protect" include("test_sesam3_protect.jl")
         #@safetestset "Tests" include("test/test_sesam3.jl")
