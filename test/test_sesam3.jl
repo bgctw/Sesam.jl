@@ -4,9 +4,8 @@ using ModelingToolkit, OrdinaryDiffEq
 using ComponentArrays
 using MTKHelpers
 test_path = splitpath(pwd())[end] == "test" ? "." : "test"
-@show test_path
-
-include(joinpath(test_path,"testset_utils.jl"))
+#include(joinpath(test_path,"testset_utils.jl"))
+include("testset_utils.jl")
 
 @named s = sesam3()
 @named pl = plant_const_balanced()
