@@ -16,11 +16,11 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 
 [compat]
 ComponentArrays = "0.12, 0.13, 0.14, 0.15"
-Distributions = "0.25"
+Distributions = "0.25.102"
 FillArrays = "1"
 IfElse = "0.1"
 MTKHelpers = "0.3"
-ModelingToolkit = "8.0"
+ModelingToolkit = "8.40"
 OrdinaryDiffEq = "6"
 StaticArrays = "1.1"
 Symbolics = "4.3, 5.0"
