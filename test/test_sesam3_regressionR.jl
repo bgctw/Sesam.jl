@@ -11,7 +11,7 @@ using ComponentArrays
 @named plc = plant_const(; name = :pl)
 
 @named sp = plant_sesam_system(s, pl)
-states(sp)
+unknowns(sp)
 
 sr = sesam3(; use_proportional_revenue = true, name = :s)
 @named spr = plant_sesam_system(sr, pl)
@@ -20,7 +20,7 @@ sFS = CP.sesam_fixed_substrates(s)
 @named spFS = plant_sesam_system(sFS, plc)
 sFS_r = CP.sesam_fixed_substrates(sr)
 @named spFS_r = plant_sesam_system(sFS_r, plc)
-states(spFS_r)
+unknowns(spFS_r)
 
 @parameters β_NR0 β_PR0
 params = Dict(s.β_NB => 7.16

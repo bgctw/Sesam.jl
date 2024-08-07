@@ -1,7 +1,7 @@
 
 @testset "non-negative pools" begin
-    #st = first(states(sp))
-    for st in states(sp)
+    #st = first(unknowns(sp))
+    for st in unknowns(sp)
         @test all(sol[st] .>= 0.0)
     end
 end;

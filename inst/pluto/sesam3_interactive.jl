@@ -242,7 +242,7 @@ tstart: $(tstart_scrubb), tend: $(tend_scrubb)
 """
 
 # ╔═╡ fdcefaa1-7ebf-49a1-ade5-00302ddeb6c9
-@bind vars_disp MultiCheckBox(vcat(states(sp), getproperty.(observed(sp), :lhs)))
+@bind vars_disp MultiCheckBox(vcat(unknowns(sp), getproperty.(observed(sp), :lhs)))
 
 # ╔═╡ ba4b67ab-b3fe-44f8-aeaf-925f76b005b5
 md"""
