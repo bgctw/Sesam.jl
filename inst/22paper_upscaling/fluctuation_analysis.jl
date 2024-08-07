@@ -149,8 +149,8 @@ sim_u0steady = () -> begin
     sol = sol_sesam3s0 = solve(prob0, Tsit5())
     #plot(sol, vars=[s.R, s.L])
     #plot(sol, tspan = (-5,0), vars=[s.R]) # only slight increase still
-    k = first(states(ssp0))
-    u0s = Dict(k => sol[k, end] for k in states(ssp0))
+    k = first(unknowns(ssp0))
+    u0s = Dict(k => sol[k, end] for k in unknowns(ssp0))
     #print(u0s) # outputs code that can b pasted for u0
 end
 
@@ -186,7 +186,7 @@ ps_se = ODEProblemParSetter(sep, CA.Axis(symbols_state(sep)))
 probe = ODEProblem(sep, u0, tspan, p)
 @named ssp = plant_sesam_system(ss, plf)
 probs = ODEProblem(ssp, u0, tspan, p)
-#ps_ss = ODEProblemParSetter(ssp, states(ssp))
+#ps_ss = ODEProblemParSetter(ssp, unknowns(ssp))
 ps_ss = ODEProblemParSetter(ssp, CA.Axis(symbols_state(ssp)))
 
 uend_tmp = copy(probe.u0)

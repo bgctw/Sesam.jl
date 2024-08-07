@@ -1,8 +1,8 @@
 # included from test_sesam3, sp, sol, p, u0 need to be defined
 
 @testset "non-negative pools" begin
-    #st = first(states(sp))
-    for st in states(sp)
+    #st = first(unknowns(sp))
+    for st in unknowns(sp)
         #@show st
         #@test all(sol[st] .>= 0.0) 
         @test all(sol[st] .>= -eps(Float64) * 100)

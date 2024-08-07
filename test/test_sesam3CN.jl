@@ -14,7 +14,7 @@ using Sesam: Sesam as CP
 #sp = structural_simplify(sp)
 
 @named sp = plant_sesam_system(s, pl)
-states(sp)
+unknowns(sp)
 
 sr = sesam3CN(; use_proportional_revenue = true, name = :s)
 @named spr = plant_sesam_system(sr, pl)

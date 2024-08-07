@@ -13,7 +13,7 @@ using ModelingToolkit, OrdinaryDiffEq
 #sp = structural_simplify(sp)
 
 @named sp = plant_sesam_system(s, pl)
-#states(sp)
+#unknowns(sp)
 
 p = pC = Dict(s.ϵ_tvr => 0.45,   # carbon use efficiency of microbial tvr (part by predators 
     #which respire and corresponding amount of N must be mineralized)
@@ -94,8 +94,8 @@ i_plot = () -> begin
 end
 
 @testset "non-negative pools" begin
-    #st = first(states(sp))
-    for st in states(sp)
+    #st = first(unknowns(sp))
+    for st in unknowns(sp)
         @test all(sol[st] .>= 0.0)
     end
 end;

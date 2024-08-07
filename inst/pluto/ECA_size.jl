@@ -83,7 +83,7 @@ Original chemical equailibrium refers to binding sites distributed in a solution
 What are the densities $\rho_S$ and $\rho_E$? What is the volume where all the masses and associated binding sites are distributed?
 
 Option (a) the water-filled pore space only or option (b) all the volume excluding stones and air-filled pore space.   
-Option (b) does not include the large SOM particles and it makes it difficult to specify how much mineral surfaces are adjacent. Hence, we assume that there is microposity to innermost aggregates and the reaction volume is the entire soil. As a start we ignor the dynamically changing air-filled volume. 
+Option (b) does not include the large SOM particles and it makes it difficult to specify how much mineral surfaces are adjacent. Hence, we assume that there is microposity to innermost aggregates and the reaction volume is the entire soil. As a start we ignore the dynamically changing air-filled volume. 
 
 Assuming we model $1 m^2$ of soil surface with depth $0.1 m$, with zero stone content ($p_s = 1$) and a negligible small fraction of air-filled pores, we have a volume of $V_{ref} = 0.1 m^3$.
 

@@ -12,7 +12,7 @@ include("testset_utils.jl")
 @named plc = plant_const(; name = :pl)
 
 @named sp = plant_sesam_system(s, pl)
-states(sp)
+unknowns(sp)
 
 sr = sesam3(; use_proportional_revenue = true, name = :s)
 @named spr = plant_sesam_system(sr, pl)
@@ -22,7 +22,7 @@ i_inspect_equations = () -> begin
     tmp_pl = Dict([e.lhs for e in equations(pl)] .=> equations(pl))
     [k ∈ keys(tmp_s) for k in keys(tmp_pl)]
     tmp = merge(tmp_s, tmp_pl)
-    tmp3 = sort(string.(states(s)))
+    tmp3 = sort(string.(unknowns(s)))
     tmp2 = sort(replace.(string.(keys(tmp)), "Differential(t)(" => ""))
     tmp4 = [(s, eq) for (s, eq) in zip(tmp3[1:length(tmp3)], tmp2)]
     tmp4[(1 * 20) .+ (1:20)]
@@ -220,7 +220,7 @@ end;
     @named spLRP = plant_sesam_system(sLRP, pl)
     sLRP_r = CP.sesam_const_dLRP_relative(dL, dR, dP; name = :s, kwargs...)
     @named spLRP_r = plant_sesam_system(sLRP_r, pl)
-    states(spLRP_r)
+    unknowns(spLRP_r)
     u0LRP = copy(u0)
     u0LRP[s.B] = B0
     pLRP = copy(p0)
